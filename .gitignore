@@ -9,5 +9,11 @@ venv/
 .env
 .env.*
 
+# 数据文件:体积大且可由 src/ingest/parse_spf.py 重新生成
+# 原始数据来源见 README(data.gouv.fr,Etalab 2.0 开放许可)
+data/*.xml
+data/spf_raw/
+data/corpus.jsonl
+
 # OS
 .DS_Store

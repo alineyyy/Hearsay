@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hearsay — paperwork advice, checked against the source</title>
+<style>
+  :root {
+    --paper: #fbfaf7;
+    --ink: #16150f;
+    --ink-soft: #56534a;
+    --ink-faint: #8b877c;
+    --rule: #e3e0d6;
+    --rule-strong: #cdc9bc;
+    --card: #ffffff;
+    --accent: #1c4e3f;
+    --accent-soft: #eaf1ee;
+
+    --ok: #2f7a52;      --ok-bg: #eef6f1;
+    --stale: #a8650a;   --stale-bg: #fdf3e4;
+    --partial: #35618e; --partial-bg: #ecf2f9;
+    --gap: #6b6659;     --gap-bg: #f2f0ea;
+    --wrong: #a33327;   --wrong-bg: #fbeeec;
+
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #14140f; --ink: #f0eee6; --ink-soft: #a8a396; --ink-faint: #736f64;
+      --rule: #2b2a23; --rule-strong: #3d3b32; --card: #1c1b15;
+      --accent: #7fc0a5; --accent-soft: #1d2a24;
+      --ok: #6bbf8e; --ok-bg: #17241c;
+      --stale: #d69b46; --stale-bg: #2a2116;
+      --partial: #7aa8d6; --partial-bg: #172029;
+      --gap: #9a9488; --gap-bg: #22211b;
+      --wrong: #d8796c; --wrong-bg: #2a1a17;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 0 24px 96px; }
+
+  /* ---------- header ---------- */
+  header { border-bottom: 1px solid var(--rule); padding: 44px 0 28px; margin-bottom: 34px; }
+  .brand { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  h1 {
+    font-size: 34px; margin: 0; letter-spacing: -0.02em; font-weight: 640;
+  }
+  .brand .stamp {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent);
+    border: 1px solid currentColor; border-radius: 3px; padding: 3px 7px;
+  }
+  .pitch {
+    margin: 14px 0 0; max-width: 660px; font-size: 16.5px; color: var(--ink-soft);
+  }
+  .pitch b { color: var(--ink); font-weight: 600; }
+
+  .opt { text-transform: none; letter-spacing: 0; color: var(--ink-faint); }
+
+  /* ---------- input ---------- */
+  .panel {
+    background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+    padding: 20px; margin-bottom: 26px;
+  }
+  label { display: block; font-size: 12.5px; color: var(--ink-faint); margin-bottom: 7px;
+          text-transform: uppercase; letter-spacing: .06em; }
+  textarea, input[type=text] {
+    width: 100%; font: inherit; font-size: 15px; color: var(--ink);
+    background: transparent; border: 1px solid var(--rule-strong); border-radius: 7px;
+    padding: 11px 13px; resize: vertical;
+  }
+  textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  .row { display: flex; gap: 14px; align-items: flex-end; margin-top: 14px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 190px; }
+  .hint { font-size: 12.5px; color: var(--ink-faint); margin-top: 7px; }
+  .go {
+    font: inherit; font-weight: 560; font-size: 15px; padding: 11px 24px; border: none;
+    border-radius: 7px; background: var(--accent); color: var(--paper); cursor: pointer;
+    white-space: nowrap;
+  }
+  .go:disabled { opacity: .45; cursor: default; }
+  .samples { margin-top: 12px; font-size: 13px; color: var(--ink-faint); }
+  .samples button {
+    font: inherit; font-size: 13px; background: none; border: none; padding: 0 2px;
+    color: var(--accent); cursor: pointer; text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* ---------- pipeline ---------- */
+  .pipeline { margin-bottom: 30px; display: none; }
+  .pipeline.on { display: block; }
+  .stage { display: flex; gap: 13px; padding: 8px 0; align-items: baseline; }
+  .dot {
+    width: 9px; height: 9px; border-radius: 50%; flex: none; margin-top: 8px;
+    border: 1.5px solid var(--rule-strong); background: transparent;
+  }
+  .stage.active .dot { border-color: var(--accent); background: var(--accent);
+                       animation: pulse 1.1s ease-in-out infinite; }
+  .stage.done .dot { border-color: var(--accent); background: var(--accent); }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .28 } }
+  .stage .name { font-size: 14.5px; width: 210px; flex: none; color: var(--ink-faint); }
+  .stage.active .name, .stage.done .name { color: var(--ink); }
+  .stage .detail { font-size: 13.5px; color: var(--ink-soft); font-family: var(--mono); }
+
+  /* ---------- results ---------- */
+  h2 {
+    font-size: 12.5px; text-transform: uppercase; letter-spacing: .09em;
+    color: var(--ink-faint); font-weight: 600; margin: 38px 0 14px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--rule);
+  }
+  .summary { font-size: 17px; line-height: 1.65; margin: 0 0 6px; }
+
+  .verdict {
+    border: 1px solid var(--rule); border-left-width: 3px; border-radius: 8px;
+    background: var(--card); padding: 15px 17px; margin-bottom: 11px;
+  }
+  .verdict .top { display: flex; gap: 10px; align-items: center; margin-bottom: 9px; flex-wrap: wrap; }
+  .badge {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 4px; font-weight: 600;
+  }
+  .conf { font-size: 12px; color: var(--ink-faint); }
+  .claim { font-size: 15.5px; font-weight: 550; margin: 0 0 7px; }
+  .why { font-size: 14.5px; color: var(--ink-soft); margin: 0; }
+  .cite {
+    margin-top: 11px; padding-top: 10px; border-top: 1px dashed var(--rule);
+    font-size: 13px; font-family: var(--mono); color: var(--ink-faint);
+  }
+  .cite a { color: var(--accent); text-decoration: none; }
+  .cite a:hover { text-decoration: underline; }
+  .cite .date { color: var(--stale); }
+
+  .v-confirmed      { border-left-color: var(--ok) }
+  .v-confirmed .badge { background: var(--ok-bg); color: var(--ok) }
+  .v-outdated       { border-left-color: var(--stale) }
+  .v-outdated .badge { background: var(--stale-bg); color: var(--stale) }
+  .v-partially_true { border-left-color: var(--partial) }
+  .v-partially_true .badge { background: var(--partial-bg); color: var(--partial) }
+  .v-not_covered    { border-left-color: var(--gap) }
+  .v-not_covered .badge { background: var(--gap-bg); color: var(--gap) }
+  .v-contradicted   { border-left-color: var(--wrong) }
+  .v-contradicted .badge { background: var(--wrong-bg); color: var(--wrong) }
+
+  .note {
+    background: var(--stale-bg); border: 1px solid var(--stale); border-radius: 8px;
+    padding: 14px 16px; font-size: 14.5px; color: var(--ink); margin-top: 14px;
+  }
+  .note b { color: var(--stale); }
+
+  .step { display: flex; gap: 15px; padding: 15px 0; border-bottom: 1px solid var(--rule); }
+  .step .num {
+    font-family: var(--mono); font-size: 13px; color: var(--ink-faint);
+    width: 22px; flex: none; padding-top: 2px;
+  }
+  .step .act { font-size: 15.5px; margin: 0 0 6px; }
+  .meta { font-size: 13.5px; color: var(--ink-soft); margin: 3px 0 0; }
+  .meta .k { color: var(--ink-faint); font-family: var(--mono); font-size: 12px;
+             text-transform: uppercase; letter-spacing: .05em; margin-right: 6px; }
+  .src {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 4px; background: var(--accent-soft); color: var(--accent);
+  }
+  .src.community { background: var(--stale-bg); color: var(--stale); }
+
+  ul.plain { margin: 0; padding-left: 20px; }
+  ul.plain li { margin-bottom: 7px; font-size: 14.5px; color: var(--ink-soft); }
+
+  .sources li { font-family: var(--mono); font-size: 13px; margin-bottom: 6px; }
+  .sources a { color: var(--accent); text-decoration: none; }
+  .sources a:hover { text-decoration: underline; }
+
+  .err {
+    background: var(--wrong-bg); border: 1px solid var(--wrong); color: var(--wrong);
+    padding: 14px 16px; border-radius: 8px; font-family: var(--mono); font-size: 13.5px;
+  }
+  footer {
+    margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--rule);
+    font-size: 12.5px; color: var(--ink-faint);
+  }
+  footer a { color: var(--ink-soft); }
+  #out:empty { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <h1>Hearsay</h1>
+      <span class="stamp">Verified against source</span>
+    </div>
+    <p class="pitch">
+      Checks the paperwork advice international students pass around against
+      <b>dated official French sources</b> — and tells you exactly what changed.
+    </p>
+  </header>
+
+  <div class="panel">
+    <label for="advice">What did you hear?</label>
+    <textarea id="advice" rows="8"
+      placeholder="Paste what a friend told you, a forum post, a message from a group chat&hellip;"></textarea>
+    <div class="samples">
+      Try a sample:
+      <button data-sample="en">English post</button> &middot;
+      <button data-sample="zh">&#20013;&#25991;&#24086;&#23376;</button>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="posted">When was it posted? <span class="opt">(optional)</span></label>
+        <input type="text" id="posted" placeholder="2024-03-15">
+      </div>
+      <div style="flex:2">
+        <label for="question">Your situation, or anything else you want to know
+          <span class="opt">(optional)</span></label>
+        <input type="text" id="question"
+          placeholder="My student permit expires in November &mdash; what do I actually need to do?">
+      </div>
+      <button class="go" id="go">Check it</button>
+    </div>
+
+    <p class="hint">
+      Leave the first box empty and it simply answers your question. Ask in any language &mdash;
+      the answer comes back in the same one. A run takes a minute or two: Hearsay reads the
+      official corpus rather than guessing.
+    </p>
+  </div>
+
+  <div class="pipeline" id="pipeline"></div>
+  <div id="out"></div>
+
+  <footer>
+    Official source: <a href="https://www.data.gouv.fr/datasets/service-public-fr-guide-vos-droits-et-demarches-particuliers/" target="_blank" rel="noopener">Service-Public.gouv.fr / DILA</a>,
+    published on data.gouv.fr under Licence Ouverte 2.0 (Etalab).
+    Hearsay reports what official documents say and when they were last updated — it is not legal advice.
+  </footer>
+</div>
+
+<script>
+const SAMPLES = {
+  en: `[Renewal tips from someone who just went through it]
+
+1. Book your préfecture appointment 2 months ahead — it's all online now, don't waste time queuing in person.
+2. Documents: passport, current titre de séjour, school enrollment certificate, proof of address, bank statements (you need to show at least €3000).
+3. You get your récépissé the same day you submit, valid for 3 months.
+4. Don't forget the timbre fiscal — I paid €160.
+5. If your récépissé expires before the new card arrives, just walk into the préfecture and they'll extend it.
+
+Good luck everyone!`,
+  zh: `【续居留经验帖】我去年刚办完学生居留续签,给学弟学妹们分享一下流程:
+
+1. 一定要提前2个月在préfecture官网预约,现在都是网上约,别傻乎乎跑去现场排队
+2. 材料清单:护照、现有居留证、学校在读证明、住房证明、银行流水(听说要证明账户里有3000欧以上才行)
+3. 交完材料当场就会给你récépissé,有效期3个月,拿着它可以合法待着
+4. 别忘了买税票 timbre fiscal,我当时交了 160 欧
+5. 如果récépissé过期了新卡还没下来,可以直接去préfecture要求延期,他们会给你续
+
+祝大家都顺利!`
+};
+
+const STAGES = [
+  ['plan',     'Understanding the question'],
+  ['retrieve', 'Searching official sources'],
+  ['extract',  'Extracting claims'],
+  ['verify',   'Cross-checking each claim'],
+  ['guide',    'Writing the guide'],
+];
+
+const LABEL = {
+  confirmed: 'Confirmed', outdated: 'Outdated', partially_true: 'Partly true',
+  not_covered: 'Not covered', contradicted: 'Contradicted',
+};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// Whether the verification stages run at all depends on whether there is
+// anything to verify — the two modes are the same pipeline, not a toggle.
+const hasAdvice = () => $('#advice').value.trim().length > 0;
+
+document.querySelectorAll('[data-sample]').forEach(b => b.onclick = () => {
+  $('#advice').value = SAMPLES[b.dataset.sample];
+  $('#posted').value = '2024-03-15';
+});
+
+function renderPipeline(state) {
+  const shown = STAGES.filter(([k]) => state.__checking || (k !== 'extract' && k !== 'verify'));
+  $('#pipeline').innerHTML = shown.map(([key, name]) => {
+    const s = state[key] || {};
+    return `<div class="stage ${s.status === 'done' ? 'done' : s.status === 'start' ? 'active' : ''}">
+      <span class="dot"></span>
+      <span class="name">${name}</span>
+      <span class="detail">${esc(s.detail || '')}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderVerdicts(v) {
+  if (!v || !v.verdicts?.length) return '';
+  let html = '<h2>What we checked</h2>';
+  html += v.verdicts.map(d => `
+    <div class="verdict v-${esc(d.status)}">
+      <div class="top">
+        <span class="badge">${LABEL[d.status] || esc(d.status)}</span>
+        <span class="conf">confidence: ${esc(d.confidence)}</span>
+      </div>
+      <p class="claim">${esc(d.claim)}</p>
+      <p class="why">${esc(d.explanation)}</p>
+      ${(d.evidence || []).map(e => `
+        <div class="cite">
+          ${esc(e.doc_id)} · <a href="${esc(e.official_url)}" target="_blank" rel="noopener">${esc(e.title)}</a>
+          · last updated <span class="date">${esc(e.last_official_update)}</span>
+        </div>`).join('')}
+    </div>`).join('');
+  if (v.overall_note) html += `<div class="note"><b>Worth knowing —</b> ${esc(v.overall_note)}</div>`;
+  return html;
+}
+
+function renderGuide(g) {
+  let html = '<h2>What to actually do</h2>';
+  html += `<p class="summary">${esc(g.summary)}</p>`;
+  html += (g.steps || []).map(s => `
+    <div class="step">
+      <span class="num">${s.order}</span>
+      <div>
+        <p class="act">${esc(s.action)}
+          <span class="src ${s.source !== 'official' ? 'community' : ''}">${esc(s.source.replace(/_/g, ' '))}</span>
+        </p>
+        ${s.where ? `<p class="meta"><span class="k">where</span>${esc(s.where)}</p>` : ''}
+        ${s.documents?.length ? `<p class="meta"><span class="k">bring</span>${s.documents.map(esc).join(' · ')}</p>` : ''}
+        ${s.deadline ? `<p class="meta"><span class="k">timing</span>${esc(s.deadline)}</p>` : ''}
+      </div>
+    </div>`).join('');
+  if (g.warnings?.length)
+    html += `<h2>Traps</h2><ul class="plain">${g.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>`;
+  if (g.open_questions?.length)
+    html += `<h2>You still need to confirm</h2><ul class="plain">${g.open_questions.map(q => `<li>${esc(q)}</li>`).join('')}</ul>`;
+  return html;
+}
+
+function renderSources(list) {
+  if (!list?.length) return '';
+  return `<h2>Official documents consulted</h2><ul class="plain sources">` +
+    list.slice(0, 8).map(s =>
+      `<li>${esc(s.last_update)} · <a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.doc_id)} ${esc(s.title)}</a></li>`
+    ).join('') + `</ul>`;
+}
+
+$('#go').onclick = async () => {
+  const checking = hasAdvice();
+  const question = $('#question').value.trim();
+
+  if (!checking && !question) { $('#advice').focus(); return; }
+
+  const body = {
+    question: question || (checking ? 'Is this advice still accurate?' : ''),
+    community_text: checking ? $('#advice').value : '',
+    community_date: checking ? $('#posted').value : '',
+  };
+
+  const state = { __checking: checking };
+  $('#go').disabled = true;
+  $('#out').innerHTML = '';
+  $('#pipeline').classList.add('on');
+  renderPipeline(state);
+
+  try {
+    const res = await fetch('/api/query', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const parts = buf.split('\n\n');
+      buf = parts.pop();
+
+      for (const part of parts) {
+        const line = part.split('\n').find(l => l.startsWith('data: '));
+        if (!line) continue;
+        const msg = JSON.parse(line.slice(6));
+
+        if (msg.type === 'stage') {
+          state[msg.stage] = { status: msg.status, detail: msg.detail };
+          renderPipeline(state);
+        } else if (msg.type === 'result') {
+          const d = msg.data;
+          $('#out').innerHTML = renderVerdicts(d.verdicts) + renderGuide(d.guide) + renderSources(d.official_sources);
+        } else if (msg.type === 'error') {
+          $('#out').innerHTML = `<div class="err">${esc(msg.message)}</div>`;
+        }
+      }
+    }
+  } catch (e) {
+    $('#out').innerHTML = `<div class="err">${esc(e.message)}</div>`;
+  } finally {
+    $('#go').disabled = false;
+  }
+};
+</script>
+</body>
+</html>

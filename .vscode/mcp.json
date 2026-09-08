@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "strands-agents": {
+      "type": "stdio",
+      "command": "/Users/caini/.local/bin/uvx",
+      "args": ["strands-agents-mcp-server"]
+    }
+  }
+}
