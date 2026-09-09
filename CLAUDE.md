@@ -33,9 +33,18 @@ Nothing on the market cross-references the two. **That gap is the product**: thi
 not just retrieve — it checks community claims against dated official sources and reports a
 per-claim verdict with confidence and citation.
 
-Two entry modes, one pipeline:
+Two entry modes, one pipeline — not a toggle. Whether the verification stages run depends
+on whether anything was pasted:
 - **Ask**: a question in any language → an actionable checklist.
-- **Verify**: paste community advice → a per-claim verdict.
+- **Verify**: paste community advice → a per-claim verdict, plus the checklist.
+
+**It is a conversation, not a lookup.** French procedures depend on permit type, département
+and nationality — details the user often doesn't know matter. So the agent must be able to
+ask and be answered. History is kept per session (`_sessions` in `src/web/server.py`, keyed
+by a browser-generated id) and fed to the planner and guide writer. A guide with no steps is
+a bug, not a safe default: when something is missing, give the steps that hold regardless,
+mark the ones that depend on it, and put the question in `open_questions` so the user can
+simply reply.
 
 ## Language rules
 

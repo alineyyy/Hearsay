@@ -1,69 +1,207 @@
-# AWS Agent Hackathon — Agents for Humans
+# Hearsay
 
-我在 [Agents for Humans Hackathon](https://agentsforhumans.devpost.com/) 上用 [AWS Strands Agents SDK](https://strandsagents.com/) 做的项目。这是我第一次做 agent 开发，仓库会随着学习和开发进度持续更新。
+> **Checks the paperwork advice international students pass around against dated official
+> French sources — and tells you exactly what changed.**
 
-**当前状态：🧪 学习阶段** — 正在跑通最基础的 Strands Agent，赛道方向还没最终确定，会在正式开发前更新本 README。
+[![License: MIT](https://img.shields.io/badge/License-MIT-informational.svg)](./LICENSE)
+[![Built with Strands Agents](https://img.shields.io/badge/built%20with-AWS%20Strands%20Agents-ff9900.svg)](https://strandsagents.com/)
+[![Amazon Bedrock](https://img.shields.io/badge/model-Amazon%20Bedrock-232f3e.svg)](https://aws.amazon.com/bedrock/)
 
-## 这是什么比赛
+Every international student in France has a senior who helped them — someone who had been
+through it and told them which documents to bring and how early to book. That advice is
+generous, specific, and usually from last year.
 
-- 用 AWS Strands Agents SDK 做一个能解决真实问题的 AI agent
-- 三个赛道选一个：Everyday Agents（日常生活）/ Pro Agents（职场）/ Good Neighbor Agents（社区）
-- 用 AWS AgentCore 部署可以加分（非必须）
-- 截止日期：2026-09-14 17:00 PT
+French administrative rules change constantly. Forum posts don't. So advice keeps
+circulating long after it stopped being true, and getting it wrong can cost you your legal
+status. The gap isn't that official information doesn't exist — it's that nobody reads it.
+People use each other instead.
 
-## 环境准备
+**Hearsay doesn't tell you to stop asking your friends. It tells you which parts of what
+they said are still true.**
+
+---
+
+## What it does
+
+Paste what you heard. Hearsay splits it into individually checkable claims, searches the
+official French corpus for each one, and rules on it — with the source and the date that
+source was last updated.
+
+```
+STALE   OUTDATED                                   confidence: high
+        "If your récépissé expires before the new card arrives, just walk
+         into the préfecture and they'll extend it."
+
+        Walk-in extension is no longer the route in most préfectures —
+        renewal requests now run through the ANEF online platform, and the
+        official document covering récépissés was revised after this advice
+        was written.
+
+        F15763 · Qu'est-ce qu'un récépissé de demande de titre de séjour
+        last updated 2023-11-17
+
+GAP     NOT COVERED                                confidence: high
+        "You need to show at least €3,000 in your bank account."
+
+        Official documents set no specific balance for a student permit
+        renewal. F2231 requires proof of "sufficient means" without naming
+        a figure. This number likely comes from one préfecture in one year
+        and should not be treated as a general requirement.
+
+        F2231 · Étudiant étranger en France : visa de long séjour ou titre de séjour
+        last updated 2026-08-01
+```
+
+Five verdicts are possible:
+
+| Verdict | Meaning |
+| --- | --- |
+| **Confirmed** | Official sources support this |
+| **Outdated** | It was true once — the rules changed after this advice was written |
+| **Partly true** | Broadly right, but a specific detail is wrong |
+| **Not covered** | Official documents are silent on this situation |
+| **Contradicted** | Official sources say the opposite |
+
+Alongside the verdicts, Hearsay produces an actionable checklist — and labels every step as
+coming from official sources, community advice, or both.
+
+Leave the paste box empty and it simply answers your question.
+
+### Two commitments
+
+**It answers in your language.** You write in English, Chinese, Spanish, Arabic — the answer
+comes back in the same language, while retrieval always runs through formal French, because
+that is what the corpus is written in. The language barrier is a large part of why students
+rely on hearsay in the first place.
+
+**"The official documents don't say" is a valid answer.** When the corpus is silent — which
+happens constantly for edge cases, and edge cases are exactly when people go looking for
+advice — Hearsay returns *not covered* and says to take it to the préfecture. An honest gap
+is more useful here than a confident guess.
+
+---
+
+## Architecture
+
+<p align="center">
+  <img src="docs/architecture.svg" alt="Hearsay architecture" width="100%">
+</p>
+
+That green/amber split is the whole design. Retrieval and date arithmetic are plain Python, so every
+conclusion traces back to a specific document ID and URL rather than to the model's memory.
+For a product whose entire value is trustworthiness, that line is the architecture.
+
+Agents hand structured Pydantic models to each other — not free-form text — via Strands'
+`structured_output`, which keeps every stage inspectable and safe to render in a UI.
+
+### Why the planner matters more than it looks
+
+The user writes Chinese; the corpus is French. Translating the question literally retrieves
+nothing, because official documents don't use the words people use. `续居留` has to become
+`renouvellement titre de séjour étudiant` — the register the government actually writes in.
+Making an agent responsible for producing *formal administrative French*, rather than a
+translation, is what makes retrieval work at all.
+
+---
+
+## Quick start
+
+Requires Python 3.10+ and AWS credentials with Amazon Bedrock access (model access enabled
+for Anthropic Claude).
 
 ```bash
-# 1. 创建虚拟环境（推荐；如果你的机器上 venv 创建失败，直接 pip install --user 也可以）
-python3 -m venv .venv
-source .venv/bin/activate
-
-# 2. 安装依赖
+git clone https://github.com/alineyyy/HearSay.git
+cd HearSay
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-
-# 3. 配置 AWS 凭证（Strands 默认走 Amazon Bedrock 调用 Claude）
-aws configure
-# 并确保在 AWS 控制台 Bedrock -> Model access 里已开通 Anthropic Claude 的模型访问权限
 ```
 
-## 跑第一个 agent
+Build the official corpus (the raw data is not committed — 23 MB zipped, 148 MB extracted):
 
 ```bash
-python3 -u agent.py
+mkdir -p data
+curl -L -o data/service-public.xml \
+  "https://www.data.gouv.fr/api/1/datasets/r/0ed10f28-d197-4324-97b3-037f625095ac"
+mkdir -p data/spf_raw && unzip -oq data/service-public.xml -d data/spf_raw
+python3 src/ingest/parse_spf.py
 ```
 
-`agent.py` 是照着官方 [Quickstart](https://strandsagents.com/docs/user-guide/quickstart/python/) 改的最小示例：一个 agent 挂了 3 个工具（`calculator`、`current_time`、自定义的 `letter_counter`），丢一句自然语言指令给它，它自己决定调用哪些工具、调几次、最后怎么组织回答。
+> The file is served with an `.xml` extension but is actually a ZIP of ~5,552 per-fiche XML
+> files. This is not a mistake in the command above.
 
-## Strands Agents 是什么（自己整理的笔记）
+Run the web app:
 
-- **Agent = LLM + 工具（tools）+ 一个"思考 → 调用工具 → 再思考 → 回答"的循环。** SDK 本身没有额外的服务端/调度器，`Agent(...)` 就是你进程里的一个普通 Python 对象。
-- **模型可插拔**：默认用 Amazon Bedrock 上的 Claude，也可以换成 Anthropic/OpenAI/Google/Ollama 等，通常只是换一行代码 + 装对应的包。
-- **工具（tool）**：一个普通函数，用 `@tool` 装饰器标记一下，函数签名和 docstring 会被自动转成"这个工具是干嘛的"说明喂给模型。也可以通过 MCP（Model Context Protocol）接入外部工具/服务。
-- **多 agent 编排**：可以把多个 agent 组合起来（比如一个负责抽取信息、一个负责决策/写作），适合拆分复杂任务。
-- **AgentCore**：AWS 提供的托管部署层（Runtime / Gateway / Memory / Identity / Observability），本地写好的 Strands agent 可以部署上去跑在云端，这是比赛里的加分项。
+```bash
+python3 serve.py     # http://127.0.0.1:8000
+```
 
-## 学习 & 开发路线（给自己看的 checklist）
+Or from the command line:
 
-- [x] 注册 AWS 账号 + AWS Builder ID
-- [x] 装好 strands-agents，跑通第一个 hello world agent
-- [ ] 申请 $50 AWS credits，确认 Bedrock 里 Claude 的模型访问权限已开通
-- [ ] 过一遍官方 [Examples](https://strandsagents.com/docs/examples/)，理解自定义工具、多 agent 编排、MCP 集成
-- [ ] 确定赛道方向 + 具体项目想法
-- [ ] 写出第一版能跑的 agent（覆盖真实的一个使用场景）
-- [ ] 补齐架构图、完整 README
-- [ ] （加分项）用 AgentCore 部署
-- [ ] 录 5 分钟以内的 demo + pitch 视频，发 YouTube/Vimeo
-- [ ] 提交到 Devpost
+```bash
+python3 run.py verify        # check a sample post, in English
+python3 run.py verify-zh     # the same post in Chinese — shows the multilingual path
+python3 run.py ask "My student residence permit expires soon. How do I renew it?"
+```
 
-## 参考资料
+A run makes several Bedrock calls and takes a minute or two. The web app streams each
+pipeline stage as it executes, so you can watch it work rather than watching a spinner.
 
-- Strands Agents Quickstart: https://strandsagents.com/docs/user-guide/quickstart/overview/
-- Strands Agents Examples: https://strandsagents.com/docs/examples/
-- Amazon Bedrock AgentCore 文档: https://docs.aws.amazon.com/bedrock-agentcore/
-- Strands 部署到 AgentCore Runtime: https://aws.github.io/bedrock-agentcore-starter-toolkit/user-guide/runtime/quickstart.html
-- 比赛主页: https://agentsforhumans.devpost.com/
-- 比赛 Resources 页: https://agentsforhumans.devpost.com/resources
+---
+
+## Repository layout
+
+```
+src/ingest/parse_spf.py     official XML ➜ structured corpus  (run once)
+src/retrieval/corpus.py     chunking + BM25 index
+src/community/sources.py    pluggable community-source interface
+src/agents/schemas.py       Pydantic contracts between pipeline stages
+src/agents/tools.py         deterministic tools exposed to the agents
+src/agents/pipeline.py      the five-stage orchestration
+src/web/                    FastAPI server + single-page front end
+run.py                      CLI entry point, with sample material
+docs/devpost-story.md       project story
+```
+
+### Community sources are pluggable
+
+`src/community/sources.py` abstracts where advice comes from. Pasted text is the primary
+implementation — it carries no platform risk and mirrors what students actually do. Adding
+a connector for another source means implementing one `fetch()` method; nothing upstream
+changes.
+
+Scraping a closed social platform was considered and rejected, for a reason unrelated to
+difficulty: it would make a live demo depend on a fight with someone's anti-bot system.
+
+---
+
+## Data
+
+Official corpus: **Service-Public.gouv.fr / DILA**, published on
+[data.gouv.fr](https://www.data.gouv.fr/datasets/service-public-fr-guide-vos-droits-et-demarches-particuliers/)
+under **Licence Ouverte 2.0 (Etalab)**, which requires naming the source, the download URL
+and the file date.
+
+Each document carries `dateDerniereModificationImportante` and a canonical `spUrl`. Those
+two fields are what let Hearsay say *"this advice predates a change made on 2026-08-01"*
+instead of vaguely warning that rules change. Any transformation of the corpus must
+preserve them.
+
+## Scope
+
+Hearsay is built on one pluggable ingredient: a corpus of official documents that carry
+update dates. This release ships the **French** corpus — 5,552 documents from
+Service-Public.gouv.fr — and is validated in **English and Chinese**. The pipeline itself is
+country- and language-agnostic; the same five stages work anywhere an equivalent open
+dataset exists.
+
+Hearsay reports what official documents say and when they were last updated. **It is not
+legal advice.**
 
 ## License
 
-MIT — 见 [LICENSE](./LICENSE)
+[MIT](./LICENSE)
+
+---
+
+Built with [AWS Strands Agents](https://strandsagents.com/) on Amazon Bedrock for the
+[Agents for Humans Hackathon](https://agentsforhumans.devpost.com/).

@@ -39,10 +39,36 @@ def get_navigator():
     return _navigator
 
 
+# Conversations are held in memory, keyed by a session id the browser generates.
+# French procedures depend on details the user often doesn't know matter, so the agent
+# has to be able to ask and be answered — a one-shot exchange cannot do that.
+_sessions: dict[str, list] = {}
+_sessions_lock = threading.Lock()
+
+MAX_TURNS = 8
+
+
+def get_history(session_id):
+    if not session_id:
+        return []
+    with _sessions_lock:
+        return list(_sessions.get(session_id, []))
+
+
+def record_turn(session_id, turn):
+    if not session_id:
+        return
+    with _sessions_lock:
+        history = _sessions.setdefault(session_id, [])
+        history.append(turn)
+        del history[:-MAX_TURNS]
+
+
 class QueryRequest(BaseModel):
     question: str = ""
     community_text: str = ""
     community_date: str = ""
+    session_id: str = ""
 
 
 def serialise(result):
@@ -80,6 +106,13 @@ async def health():
     return {"status": "ok", "corpus": get_navigator().corpus.stats()}
 
 
+@app.post("/api/reset")
+async def reset(req: QueryRequest):
+    with _sessions_lock:
+        _sessions.pop(req.session_id, None)
+    return {"status": "cleared"}
+
+
 @app.post("/api/query")
 async def query(req: QueryRequest):
     """Run the pipeline, streaming each stage to the browser as it happens."""
@@ -101,8 +134,17 @@ async def query(req: QueryRequest):
                     question=req.question,
                     community_text=req.community_text,
                     community_date=req.community_date,
+                    history=get_history(req.session_id),
                     on_event=on_event,
                 )
+                record_turn(req.session_id, {
+                    "question": req.question,
+                    "community_text": bool(req.community_text.strip()),
+                    "procedure": result["plan"].procedure,
+                    "situation": result["plan"].user_situation,
+                    "summary": result["guide"].summary,
+                    "open_questions": result["guide"].open_questions,
+                })
                 push({"type": "result", "data": serialise(result)})
             except Exception as exc:  # surfaced in the UI rather than swallowed
                 push({"type": "error", "message": f"{type(exc).__name__}: {exc}"})

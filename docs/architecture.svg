@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 580" width="1240" height="580" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,1 L9,5 L0,9" fill="none" stroke="#8b877c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <rect width="1240" height="580" fill="#fbfaf7"/>
+
+  <!-- ── input ─────────────────────────────────────────────── -->
+  <rect x="60" y="37" width="3.5" height="16" rx="1.75" fill="#8b877c"/><text x="72" y="50" font-size="12.5" letter-spacing="1.9" fill="#16150f" font-weight="700">INPUT</text>
+
+  <rect x="60" y="64" width="470" height="72" rx="9" fill="#fff" stroke="#cdc9bc"/>
+  <text x="88" y="96" font-size="16" font-weight="600" fill="#16150f">What you heard</text>
+  <text x="88" y="118" font-size="13.5" fill="#56534a">a message, a forum post, a screenshot of a group chat</text>
+
+  <rect x="554" y="64" width="380" height="72" rx="9" fill="#fff" stroke="#cdc9bc"/>
+  <text x="582" y="96" font-size="16" font-weight="600" fill="#16150f">Your question <tspan font-size="13" font-weight="400" fill="#8b877c">— optional</tspan></text>
+  <text x="582" y="118" font-size="13.5" fill="#56534a">“My permit expires in November…”</text>
+
+  <text x="962" y="94" font-size="13.5" fill="#8b877c">written in</text>
+  <text x="962" y="114" font-size="15" font-weight="600" fill="#1c4e3f">any language</text>
+
+  <line x1="60" y1="170" x2="1180" y2="170" stroke="#e3e0d6" stroke-width="1"/>
+  <path d="M497 136 L497 176" stroke="#8b877c" stroke-width="1.6" fill="none" marker-end="url(#a)"/>
+
+  <!-- ── pipeline ──────────────────────────────────────────── -->
+  <rect x="60" y="190" width="3.5" height="16" rx="1.75" fill="#1c4e3f"/><text x="72" y="203" font-size="12.5" letter-spacing="1.9" fill="#16150f" font-weight="700">PIPELINE</text>
+
+  <!-- legend, tucked into the header row -->
+  <rect x="830" y="192" width="12" height="12" rx="3" fill="#eaf1ee" stroke="#1c4e3f" stroke-width="1.3"/>
+  <text x="848" y="203" font-size="12" fill="#56534a">agent — judgement</text>
+  <rect x="978" y="192" width="12" height="12" rx="3" fill="#fdf3e4" stroke="#a8650a" stroke-width="1.3"/>
+  <text x="996" y="203" font-size="12" fill="#56534a">deterministic tool — facts</text>
+
+  <!-- bracket over the two conditional stages -->
+  <path d="M522 234 L522 224 L949 224 L949 234" fill="none" stroke="#cdc9bc" stroke-width="1.3" stroke-dasharray="4 4"/>
+  <rect x="620" y="216" width="232" height="16" fill="#fbfaf7"/>
+  <text x="736" y="228" font-size="11.5" fill="#8b877c" text-anchor="middle">only when there is something to check</text>
+
+  <g>
+    <rect x="60" y="244" width="196" height="104" rx="9" fill="#eaf1ee" stroke="#1c4e3f" stroke-width="1.4"/>
+    <circle cx="86" cy="270" r="11" fill="#1c4e3f"/><text x="86" y="275" font-size="12.5" font-weight="700" fill="#eaf1ee" text-anchor="middle">1</text>
+    <text x="106" y="275" font-size="15.5" font-weight="600" fill="#16150f">Planner</text>
+    <text x="80" y="304" font-size="13" fill="#3d5c51">any language ➜ formal</text>
+    <text x="80" y="322" font-size="13" fill="#3d5c51">French search terms</text>
+  </g>
+
+  <g>
+    <rect x="291" y="244" width="196" height="104" rx="9" fill="#fdf3e4" stroke="#a8650a" stroke-width="1.4"/>
+    <circle cx="317" cy="270" r="11" fill="#a8650a"/><text x="317" y="275" font-size="12.5" font-weight="700" fill="#fdf3e4" text-anchor="middle">2</text>
+    <text x="337" y="275" font-size="15.5" font-weight="600" fill="#16150f">Retrieval</text>
+    <text x="311" y="304" font-size="13" fill="#7d4c08">BM25 over 24,457</text>
+    <text x="311" y="322" font-size="13" fill="#7d4c08">chunks · no model</text>
+  </g>
+
+  <g>
+    <rect x="522" y="244" width="196" height="104" rx="9" fill="#eaf1ee" stroke="#1c4e3f" stroke-width="1.4"/>
+    <circle cx="548" cy="270" r="11" fill="#1c4e3f"/><text x="548" y="275" font-size="12.5" font-weight="700" fill="#eaf1ee" text-anchor="middle">3</text>
+    <text x="568" y="275" font-size="15.5" font-weight="600" fill="#16150f">Claim extractor</text>
+    <text x="542" y="304" font-size="13" fill="#3d5c51">splits advice into</text>
+    <text x="542" y="322" font-size="13" fill="#3d5c51">checkable claims</text>
+  </g>
+
+  <g>
+    <rect x="753" y="244" width="196" height="104" rx="9" fill="#eaf1ee" stroke="#1c4e3f" stroke-width="1.4"/>
+    <circle cx="779" cy="270" r="11" fill="#1c4e3f"/><text x="779" y="275" font-size="12.5" font-weight="700" fill="#eaf1ee" text-anchor="middle">4</text>
+    <text x="799" y="275" font-size="15.5" font-weight="600" fill="#16150f">Verifier</text>
+    <text x="773" y="304" font-size="13" fill="#3d5c51">rules on each claim,</text>
+    <text x="773" y="322" font-size="13" fill="#3d5c51">calling tools to check</text>
+  </g>
+
+  <g>
+    <rect x="984" y="244" width="196" height="104" rx="9" fill="#eaf1ee" stroke="#1c4e3f" stroke-width="1.4"/>
+    <circle cx="1010" cy="270" r="11" fill="#1c4e3f"/><text x="1010" y="275" font-size="12.5" font-weight="700" fill="#eaf1ee" text-anchor="middle">5</text>
+    <text x="1030" y="275" font-size="15.5" font-weight="600" fill="#16150f">Guide writer</text>
+    <text x="1004" y="304" font-size="13" fill="#3d5c51">checklist, every step</text>
+    <text x="1004" y="322" font-size="13" fill="#3d5c51">source-labelled</text>
+  </g>
+
+  <path d="M256 296 L285 296" stroke="#8b877c" stroke-width="1.6" marker-end="url(#a)"/>
+  <path d="M487 296 L516 296" stroke="#8b877c" stroke-width="1.6" marker-end="url(#a)"/>
+  <path d="M718 296 L747 296" stroke="#8b877c" stroke-width="1.6" marker-end="url(#a)"/>
+  <path d="M949 296 L978 296" stroke="#8b877c" stroke-width="1.6" marker-end="url(#a)"/>
+
+  <!-- ── corpus ────────────────────────────────────────────── -->
+  <path d="M389 348 L389 408" stroke="#a8650a" stroke-width="1.4" stroke-dasharray="4 4" fill="none"/>
+  <path d="M851 348 L851 408" stroke="#1c4e3f" stroke-width="1.4" stroke-dasharray="4 4" fill="none"/>
+  <text x="399" y="382" font-size="11.5" fill="#a8650a">reads</text>
+  <text x="861" y="382" font-size="11.5" fill="#1c4e3f">queries</text>
+
+  <rect x="60" y="408" width="1120" height="80" rx="9" fill="#fff" stroke="#cdc9bc"/>
+  <line x1="60" y1="506" x2="1180" y2="506" stroke="#e3e0d6" stroke-width="1"/>
+  <text x="88" y="441" font-size="15.5" font-weight="600" fill="#16150f">Official corpus — Service-Public.gouv.fr</text>
+  <text x="88" y="465" font-size="13.5" fill="#56534a">5,552 documents · every one carries its canonical URL and the date it was last updated</text>
+  <text x="1152" y="441" font-size="12.5" fill="#a8650a" text-anchor="end" font-weight="600">those dates are what make</text>
+  <text x="1152" y="461" font-size="12.5" fill="#a8650a" text-anchor="end" font-weight="600">“this one is outdated” possible</text>
+
+  <!-- ── output ────────────────────────────────────────────── -->
+  <rect x="60" y="511" width="3.5" height="16" rx="1.75" fill="#a8650a"/><text x="72" y="524" font-size="12.5" letter-spacing="1.9" fill="#16150f" font-weight="700">OUTPUT</text>
+  <text x="60" y="552" font-size="15.5" fill="#16150f">A verdict on every claim — <tspan font-weight="600" fill="#1c4e3f">confirmed</tspan> · <tspan font-weight="600" fill="#a8650a">outdated</tspan> · <tspan font-weight="600">partly true</tspan> · <tspan font-weight="600">not covered</tspan> · <tspan font-weight="600">contradicted</tspan></text>
+  <text x="60" y="572" font-size="13.5" fill="#56534a">each one cited, dated, and written in the reader’s own language</text>
+</svg>

@@ -74,6 +74,11 @@ Given a question in any language:
    in French government documents, not a literal translation.
 4. Note which key facts are still missing for an accurate answer.
 5. Record the language the user wrote in, so later stages answer in it.
+
+When earlier turns of the conversation are supplied, read them first. A follow-up like
+"then what documents do I need?" or "I have a passeport talent" only makes sense against
+what was already discussed — resolve it against that context rather than treating it as a
+fresh question, and carry forward any detail the user has now supplied.
 """
 
 CLAIM_PROMPT = SHARED_CONTEXT + """
@@ -128,6 +133,16 @@ Requirements:
   timing pitfalls.
 - If official documents do not cover the user's situation, do not improvise. Put it in
   open_questions and say who they should ask.
+
+NEVER return a guide with no steps. Missing information is normal — French procedures
+depend on permit type, département and nationality, and the user often does not know which
+details matter. When something is missing:
+  - give the steps that hold regardless of the unknown,
+  - mark the steps that depend on it and say what changes either way,
+  - put the specific question you need answered in open_questions, phrased so the user can
+    simply reply to it.
+A guide that says only "I need more information" is a failure. The user came here stuck;
+send them away with something they can do today, plus one clear question.
 """
 
 
@@ -178,6 +193,28 @@ def _format_evidence(results):
     return "\n\n---\n\n".join(blocks)
 
 
+def _format_history(history):
+    """Render prior turns compactly so later stages can resolve follow-ups."""
+    if not history:
+        return ""
+    lines = []
+    for i, turn in enumerate(history, 1):
+        lines.append(f"--- turn {i} ---")
+        if turn.get("question"):
+            lines.append(f"User asked: {turn['question']}")
+        if turn.get("community_text"):
+            lines.append("User pasted community advice to be checked.")
+        if turn.get("procedure"):
+            lines.append(f"Identified procedure: {turn['procedure']}")
+        if turn.get("situation"):
+            lines.append(f"Situation established: {turn['situation']}")
+        if turn.get("summary"):
+            lines.append(f"You answered: {turn['summary']}")
+        if turn.get("open_questions"):
+            lines.append("You asked the user to confirm: " + "; ".join(turn["open_questions"]))
+    return "\n".join(lines)
+
+
 class Navigator:
     """Administrative navigator for international students in France."""
 
@@ -185,11 +222,14 @@ class Navigator:
         self.corpus = get_corpus()
 
     # ---------- 1. planning ----------
-    def plan(self, question: str, profile: str = "") -> QueryPlan:
-        prompt = f"User question:\n{question}"
+    def plan(self, question: str, profile: str = "", history=None) -> QueryPlan:
+        parts = []
+        if history:
+            parts.append("Earlier in this conversation:\n" + _format_history(history))
+        parts.append(f"The user now says:\n{question}")
         if profile:
-            prompt += f"\n\nContext the user already provided:\n{profile}"
-        return _agent(PLANNER_PROMPT).structured_output(QueryPlan, prompt)
+            parts.append(f"Context the user already provided:\n{profile}")
+        return _agent(PLANNER_PROMPT).structured_output(QueryPlan, "\n\n".join(parts))
 
     # ---------- 2. retrieval (deterministic) ----------
     def retrieve(self, plan: QueryPlan, per_query: int = 4):
@@ -248,7 +288,7 @@ class Navigator:
         )
 
     # ---------- 5. guide ----------
-    def build_guide(self, question, plan, evidence_text, verdicts=None) -> Guide:
+    def build_guide(self, question, plan, evidence_text, verdicts=None, history=None) -> Guide:
         agent = _agent(GUIDE_PROMPT, tools=[search_official_docs])
         parts = [
             f"The user writes in {plan.user_language}. Write the entire guide in that language.",
@@ -263,9 +303,14 @@ class Navigator:
                 for v in verdicts.verdicts
             )
             parts.append(f"\nVerdicts on the community advice:\n{vt}")
+        if history:
+            parts.insert(1, "\nEarlier in this conversation:\n" + _format_history(history)
+                         + "\nBuild on this. Do not repeat what you already told them.")
         if plan.missing_info:
             parts.append(
-                "\nNote: the user has not yet provided: " + "; ".join(plan.missing_info)
+                "\nThe user has not yet told you: " + "; ".join(plan.missing_info)
+                + "\nGive the steps that hold regardless, mark the ones that depend on this,"
+                " and put the question in open_questions so they can just reply to it."
             )
         parts.append("\nWrite the guide. Label every step's source honestly.")
 
@@ -279,7 +324,7 @@ class Navigator:
 
     # ---------- entry point ----------
     def run(self, question="", community_text="", community_date="", profile="",
-            on_event=None):
+            history=None, on_event=None):
         """
         Ask mode:    pass `question` only.
         Verify mode: pass `community_text` (optionally with a `question` framing it).
@@ -298,7 +343,7 @@ class Navigator:
         seed = question or "Is the following community advice still accurate?"
 
         emit("plan", "start")
-        plan = self.plan(seed, profile)
+        plan = self.plan(seed, profile, history=history)
         emit("plan", "done",
              f"Identified as \u201c{plan.procedure}\u201d \u00b7 answering in {plan.user_language}")
 
@@ -327,7 +372,7 @@ class Navigator:
                  " \u00b7 ".join(f"{n} {s.replace('_', ' ')}" for s, n in counts.items()))
 
         emit("guide", "start")
-        guide = self.build_guide(seed, plan, evidence_text, verdicts)
+        guide = self.build_guide(seed, plan, evidence_text, verdicts, history=history)
         emit("guide", "done", f"{len(guide.steps)} steps")
 
         return {

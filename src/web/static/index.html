@@ -176,6 +176,52 @@
   .sources a { color: var(--accent); text-decoration: none; }
   .sources a:hover { text-decoration: underline; }
 
+  /* ---------- conversation ---------- */
+  .turn { margin-bottom: 42px; }
+  .turn + .turn { padding-top: 34px; border-top: 2px solid var(--rule); }
+  .you {
+    background: var(--card); border: 1px solid var(--rule); border-left: 3px solid var(--ink-faint);
+    border-radius: 8px; padding: 13px 16px; margin-bottom: 20px;
+  }
+  .you .who {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--ink-faint); margin-bottom: 6px;
+  }
+  .you .said { font-size: 14.5px; white-space: pre-wrap; margin: 0; }
+  .you .said.clip {
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .you .more {
+    font: inherit; font-size: 12.5px; background: none; border: none; padding: 4px 0 0;
+    color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+  }
+
+  .asking {
+    background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 8px;
+    padding: 15px 17px; margin-top: 20px;
+  }
+  .asking .lead {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 9px;
+  }
+  .asking ul { margin: 0; padding-left: 19px; }
+  .asking li { font-size: 14.5px; margin-bottom: 6px; }
+  .asking .cta {
+    font: inherit; font-size: 13.5px; font-weight: 550; margin-top: 11px; padding: 7px 15px;
+    border: 1px solid var(--accent); border-radius: 6px; background: transparent;
+    color: var(--accent); cursor: pointer;
+  }
+  .asking .cta:hover { background: var(--accent); color: var(--paper); }
+
+  .composer { position: sticky; bottom: 0; background: var(--paper); padding-top: 8px; }
+  .composer .panel { margin-bottom: 10px; }
+  .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .reset {
+    font: inherit; font-size: 13px; background: none; border: none; padding: 0;
+    color: var(--ink-faint); cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+  }
+  .reset:hover { color: var(--ink); }
+
   .err {
     background: var(--wrong-bg); border: 1px solid var(--wrong); color: var(--wrong);
     padding: 14px 16px; border-radius: 8px; font-family: var(--mono); font-size: 13.5px;
@@ -202,39 +248,41 @@
     </p>
   </header>
 
-  <div class="panel">
-    <label for="advice">What did you hear?</label>
-    <textarea id="advice" rows="8"
-      placeholder="Paste what a friend told you, a forum post, a message from a group chat&hellip;"></textarea>
-    <div class="samples">
-      Try a sample:
-      <button data-sample="en">English post</button> &middot;
-      <button data-sample="zh">&#20013;&#25991;&#24086;&#23376;</button>
-    </div>
+  <div id="conversation"></div>
 
-    <div class="row">
-      <div>
-        <label for="posted">When was it posted? <span class="opt">(optional)</span></label>
-        <input type="text" id="posted" placeholder="2024-03-15">
+  <div class="composer">
+    <div class="panel">
+      <label for="advice">What did you hear? <span class="opt" id="adviceOpt">(paste it and Hearsay will check it)</span></label>
+      <textarea id="advice" rows="7"
+        placeholder="Paste what a friend told you, a forum post, a message from a group chat&hellip;"></textarea>
+      <div class="samples" id="samples">
+        Try a sample:
+        <button data-sample="en">English post</button> &middot;
+        <button data-sample="zh">&#20013;&#25991;&#24086;&#23376;</button>
       </div>
-      <div style="flex:2">
-        <label for="question">Your situation, or anything else you want to know
-          <span class="opt">(optional)</span></label>
-        <input type="text" id="question"
-          placeholder="My student permit expires in November &mdash; what do I actually need to do?">
-      </div>
-      <button class="go" id="go">Check it</button>
-    </div>
 
-    <p class="hint">
-      Leave the first box empty and it simply answers your question. Ask in any language &mdash;
-      the answer comes back in the same one. A run takes a minute or two: Hearsay reads the
-      official corpus rather than guessing.
-    </p>
+      <div class="row">
+        <div>
+          <label for="posted">When was it posted? <span class="opt">(optional)</span></label>
+          <input type="text" id="posted" placeholder="2024-03-15">
+        </div>
+        <div style="flex:2">
+          <label for="question">Your situation, or anything else you want to know
+            <span class="opt">(optional)</span></label>
+          <input type="text" id="question"
+            placeholder="My student permit expires in November &mdash; what do I actually need to do?">
+        </div>
+        <button class="go" id="go">Check it</button>
+      </div>
+    </div>
+    <div class="bar">
+      <p class="hint" style="margin:0">
+        Leave the first box empty and it simply answers your question. Ask in any language.
+        Hearsay remembers the conversation, so you can just reply to what it asks you.
+      </p>
+      <button class="reset" id="reset" hidden>Start over</button>
+    </div>
   </div>
-
-  <div class="pipeline" id="pipeline"></div>
-  <div id="out"></div>
 
   <footer>
     Official source: <a href="https://www.data.gouv.fr/datasets/service-public-fr-guide-vos-droits-et-demarches-particuliers/" target="_blank" rel="noopener">Service-Public.gouv.fr / DILA</a>,
@@ -281,23 +329,23 @@ const LABEL = {
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-// Whether the verification stages run at all depends on whether there is
-// anything to verify — the two modes are the same pipeline, not a toggle.
-const hasAdvice = () => $('#advice').value.trim().length > 0;
+// One conversation per page load. The server keys history off this.
+const SESSION = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
+let turnCount = 0;
 
 document.querySelectorAll('[data-sample]').forEach(b => b.onclick = () => {
   $('#advice').value = SAMPLES[b.dataset.sample];
   $('#posted').value = '2024-03-15';
 });
 
-function renderPipeline(state) {
-  const shown = STAGES.filter(([k]) => state.__checking || (k !== 'extract' && k !== 'verify'));
-  $('#pipeline').innerHTML = shown.map(([key, name]) => {
-    const s = state[key] || {};
-    return `<div class="stage ${s.status === 'done' ? 'done' : s.status === 'start' ? 'active' : ''}">
+function renderPipeline(el, state, checking) {
+  const shown = STAGES.filter(([k]) => checking || (k !== 'extract' && k !== 'verify'));
+  el.innerHTML = shown.map(([key, name]) => {
+    const st = state[key] || {};
+    return `<div class="stage ${st.status === 'done' ? 'done' : st.status === 'start' ? 'active' : ''}">
       <span class="dot"></span>
       <span class="name">${name}</span>
-      <span class="detail">${esc(s.detail || '')}</span>
+      <span class="detail">${esc(st.detail || '')}</span>
     </div>`;
   }).join('');
 }
@@ -331,7 +379,7 @@ function renderGuide(g) {
       <span class="num">${s.order}</span>
       <div>
         <p class="act">${esc(s.action)}
-          <span class="src ${s.source !== 'official' ? 'community' : ''}">${esc(s.source.replace(/_/g, ' '))}</span>
+          <span class="src ${s.source !== 'official' ? 'community' : ''}">${esc(String(s.source).replace(/_/g, ' '))}</span>
         </p>
         ${s.where ? `<p class="meta"><span class="k">where</span>${esc(s.where)}</p>` : ''}
         ${s.documents?.length ? `<p class="meta"><span class="k">bring</span>${s.documents.map(esc).join(' · ')}</p>` : ''}
@@ -340,9 +388,18 @@ function renderGuide(g) {
     </div>`).join('');
   if (g.warnings?.length)
     html += `<h2>Traps</h2><ul class="plain">${g.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>`;
-  if (g.open_questions?.length)
-    html += `<h2>You still need to confirm</h2><ul class="plain">${g.open_questions.map(q => `<li>${esc(q)}</li>`).join('')}</ul>`;
   return html;
+}
+
+// Open questions are the agent asking the user something — the thing that makes
+// this a conversation rather than a lookup. Give them their own callout.
+function renderAsking(g) {
+  if (!g.open_questions?.length) return '';
+  return `<div class="asking">
+    <div class="lead">Hearsay needs to know</div>
+    <ul>${g.open_questions.map(q => `<li>${esc(q)}</li>`).join('')}</ul>
+    <button class="cta" data-answer="1">Answer this &rarr;</button>
+  </div>`;
 }
 
 function renderSources(list) {
@@ -353,23 +410,60 @@ function renderSources(list) {
     ).join('') + `</ul>`;
 }
 
-$('#go').onclick = async () => {
-  const checking = hasAdvice();
-  const question = $('#question').value.trim();
+function renderYouSaid(question, advice) {
+  const bits = [];
+  if (advice) bits.push(advice);
+  if (question) bits.push(question);
+  const text = bits.join('\n\n');
+  const long = text.length > 260;
+  return `<div class="you">
+    <div class="who">You</div>
+    <p class="said${long ? ' clip' : ''}">${esc(text)}</p>
+    ${long ? '<button class="more">Show all</button>' : ''}
+  </div>`;
+}
 
-  if (!checking && !question) { $('#advice').focus(); return; }
+async function send() {
+  const advice = $('#advice').value.trim();
+  const question = $('#question').value.trim();
+  const checking = advice.length > 0;
+
+  if (!checking && !question) { $('#question').focus(); return; }
 
   const body = {
+    session_id: SESSION,
     question: question || (checking ? 'Is this advice still accurate?' : ''),
-    community_text: checking ? $('#advice').value : '',
-    community_date: checking ? $('#posted').value : '',
+    community_text: advice,
+    community_date: checking ? $('#posted').value.trim() : '',
   };
 
-  const state = { __checking: checking };
+  // Build this turn's block and append it — earlier turns stay on screen.
+  turnCount += 1;
+  const turn = document.createElement('div');
+  turn.className = 'turn';
+  turn.innerHTML = renderYouSaid(question, advice)
+    + '<div class="pipeline on"></div><div class="result"></div>';
+  $('#conversation').appendChild(turn);
+
+  const pipeEl = turn.querySelector('.pipeline');
+  const outEl = turn.querySelector('.result');
+  const state = {};
+  renderPipeline(pipeEl, state, checking);
+  turn.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Clear the composer so the next message starts fresh.
+  $('#advice').value = '';
+  $('#posted').value = '';
+  $('#question').value = '';
   $('#go').disabled = true;
-  $('#out').innerHTML = '';
-  $('#pipeline').classList.add('on');
-  renderPipeline(state);
+  $('#reset').hidden = false;
+  if (turnCount === 1) {
+    $('#samples').hidden = true;
+    $('#adviceOpt').textContent = '(optional — paste something else to check)';
+    $('#advice').rows = 3;
+    $('#go').textContent = 'Send';
+    $('#question').placeholder = 'Reply, or ask a follow-up…';
+  }
 
   try {
     const res = await fetch('/api/query', {
@@ -393,20 +487,51 @@ $('#go').onclick = async () => {
 
         if (msg.type === 'stage') {
           state[msg.stage] = { status: msg.status, detail: msg.detail };
-          renderPipeline(state);
+          renderPipeline(pipeEl, state, checking);
         } else if (msg.type === 'result') {
           const d = msg.data;
-          $('#out').innerHTML = renderVerdicts(d.verdicts) + renderGuide(d.guide) + renderSources(d.official_sources);
+          outEl.innerHTML = renderVerdicts(d.verdicts) + renderGuide(d.guide)
+                          + renderAsking(d.guide) + renderSources(d.official_sources);
         } else if (msg.type === 'error') {
-          $('#out').innerHTML = `<div class="err">${esc(msg.message)}</div>`;
+          outEl.innerHTML = `<div class="err">${esc(msg.message)}</div>`;
         }
       }
     }
   } catch (e) {
-    $('#out').innerHTML = `<div class="err">${esc(e.message)}</div>`;
+    outEl.innerHTML = `<div class="err">${esc(e.message)}</div>`;
   } finally {
     $('#go').disabled = false;
+    $('#question').focus();
   }
+}
+
+$('#go').onclick = send;
+
+// Cmd/Ctrl+Enter sends from either field; Enter sends from the one-line question.
+$('#question').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+$('#advice').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); }
+});
+
+$('#conversation').addEventListener('click', e => {
+  if (e.target.matches('.more')) {
+    e.target.previousElementSibling.classList.remove('clip');
+    e.target.remove();
+  }
+  if (e.target.matches('[data-answer]')) {
+    $('#question').focus();
+    $('#question').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+});
+
+$('#reset').onclick = async () => {
+  await fetch('/api/reset', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: SESSION }),
+  }).catch(() => {});
+  location.reload();
 };
 </script>
 </body>
