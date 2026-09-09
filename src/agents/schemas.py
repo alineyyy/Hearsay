@@ -71,6 +71,12 @@ class QueryPlan(_Model):
         description="The user's circumstances and anything unusual about their case, "
         "in English. Use 'not specified' if the question gives no detail."
     )
+    contains_claims_to_check: bool = Field(
+        description="True only if the input contains assertions from SOMEONE ELSE that could "
+        "be checked against official sources — advice, a forum post, 'my friend said…'. "
+        "False when the user is simply asking about their own situation, however they phrase "
+        "it. A question is not a claim."
+    )
     user_language: str = Field(
         description="The language the user wrote in, as an English name "
         "(e.g. 'English', 'Chinese', 'Spanish', 'Arabic'). The final answer must use this language."
@@ -114,7 +120,11 @@ class ClaimSet(_Model):
         default="unknown",
         description="Any date or provenance clue found in the text; 'unknown' if none",
     )
-    claims: List[Claim] = Field(description="The extracted claims", min_length=1)
+    claims: List[Claim] = Field(
+        default_factory=list,
+        description="The extracted claims. Empty if the text turns out to contain nothing "
+        "checkable — never invent a claim just to fill this.",
+    )
 
 
 class Evidence(_Model):
@@ -141,7 +151,8 @@ class Verdict(_Model):
     )
     explanation: str = Field(
         description="Why this verdict, and exactly where the claim diverges from official "
-        "sources. Written in the user's language."
+        "sources. AT MOST TWO SENTENCES — this is read on a screen, next to five other "
+        "verdicts. Lead with what is wrong, not with context. In the user's language."
     )
     evidence: List[Evidence] = Field(
         default_factory=list, description="Official sources supporting this verdict"
@@ -162,7 +173,9 @@ class Step(_Model):
 
     order: int = Field(description="Step number, starting at 1")
     action: str = Field(
-        description="What to do, concrete enough to act on, in the user's language"
+        description="What to do, in ONE short imperative line — 'Book the appointment on "
+        "ANEF', not a paragraph explaining why. Details belong in the other fields. "
+        "In the user's language."
     )
     where: str = Field(
         default="", description="Where it is done — platform or institution. Empty if unknown."
@@ -181,17 +194,33 @@ class Guide(_Model):
     """The final deliverable handed to the user."""
 
     summary: str = Field(
-        description="Two or three sentences answering the user's core question, "
-        "in the user's language"
+        description="The direct answer to what they asked, in AT MOST TWO SENTENCES. "
+        "No preamble, no restating the question. In the user's language."
     )
-    steps: List[Step] = Field(default_factory=list, description="The actionable checklist")
+    steps: List[Step] = Field(
+        default_factory=list,
+        description="The actionable checklist. AT MOST SIX steps — merge trivial ones rather "
+        "than padding. Never empty: if key facts are missing, still give the steps that hold "
+        "regardless and ask for the missing fact in open_questions.",
+    )
     warnings: List[str] = Field(
         default_factory=list,
-        description="Pitfalls and risks — common rejection reasons, easily missed documents, "
-        "timing traps. In the user's language.",
+        description="AT MOST THREE pitfalls, one short line each — common rejection reasons, "
+        "easily missed documents, timing traps. Only genuine traps, not generic caution. "
+        "In the user's language.",
+    )
+    follow_up_question: str = Field(
+        description="The ONE thing to ask the user so the next answer is sharper — usually "
+        "which permit they hold, which département they are in, or how long until expiry. "
+        "Phrase it so they can reply in a single line: 'Which permit do you currently hold?'. "
+        "This is a required field and it is how the conversation continues. Return an empty "
+        "string ONLY when the user has already told you everything that could change the "
+        "answer — which is rare on a first exchange. In the user's language."
     )
     open_questions: List[str] = Field(
         default_factory=list,
-        description="Things the user must confirm elsewhere because official sources do not "
-        "cover their specific case, plus who to ask. In the user's language.",
+        description="Things the user must go and confirm with an authority because official "
+        "documents are silent on their case — say who to ask. This is NOT where you ask the "
+        "user for details; that is follow_up_question. At most two, one line each. Leave "
+        "empty when official sources cover everything. In the user's language.",
     )

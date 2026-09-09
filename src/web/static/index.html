@@ -222,6 +222,25 @@
   }
   .reset:hover { color: var(--ink); }
 
+  details.fold { margin-top: 30px; border-top: 1px solid var(--rule); padding-top: 14px; }
+  details.fold > summary {
+    cursor: pointer; list-style: none; font-size: 12.5px; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--ink-faint); font-weight: 600;
+  }
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary::before { content: "▸ "; }
+  details.fold[open] > summary::before { content: "▾ "; }
+  details.fold > summary:hover { color: var(--ink); }
+  details.fold ul { margin-top: 12px; }
+
+  .pipeline.folded .stage { display: none; }
+  .pipeline .recap {
+    display: none; font-size: 13px; color: var(--ink-faint); font-family: var(--mono);
+    cursor: pointer; padding: 6px 0;
+  }
+  .pipeline .recap:hover { color: var(--ink); }
+  .pipeline.folded .recap { display: block; }
+
   .err {
     background: var(--wrong-bg); border: 1px solid var(--wrong); color: var(--wrong);
     padding: 14px 16px; border-radius: 8px; font-family: var(--mono); font-size: 13.5px;
@@ -252,9 +271,9 @@
 
   <div class="composer">
     <div class="panel">
-      <label for="advice">What did you hear? <span class="opt" id="adviceOpt">(paste it and Hearsay will check it)</span></label>
-      <textarea id="advice" rows="7"
-        placeholder="Paste what a friend told you, a forum post, a message from a group chat&hellip;"></textarea>
+      <label for="advice">What have you been told?</label>
+      <textarea id="advice" rows="6"
+        placeholder="Paste what someone told you &mdash; or just ask. Hearsay works out which is which.&#10;&#10;&ldquo;A friend said I need &euro;3000 in my account to renew. Is that still true?&rdquo;&#10;&ldquo;My senior said to book the pr&eacute;fecture appointment 2 months ahead&hellip;&rdquo;&#10;&ldquo;My student permit expires in November &mdash; what do I actually need to do?&rdquo;"></textarea>
       <div class="samples" id="samples">
         Try a sample:
         <button data-sample="en">English post</button> &middot;
@@ -263,18 +282,14 @@
 
       <div class="row">
         <div>
-          <label for="posted">When was it posted? <span class="opt">(optional)</span></label>
+          <label for="posted">If you pasted something — when was it posted?
+            <span class="opt">(optional)</span></label>
           <input type="text" id="posted" placeholder="2024-03-15">
         </div>
-        <div style="flex:2">
-          <label for="question">Your situation, or anything else you want to know
-            <span class="opt">(optional)</span></label>
-          <input type="text" id="question"
-            placeholder="My student permit expires in November &mdash; what do I actually need to do?">
-        </div>
-        <button class="go" id="go">Check it</button>
+        <button class="go" id="go">Ask Hearsay</button>
       </div>
     </div>
+
     <div class="bar">
       <p class="hint" style="margin:0">
         Leave the first box empty and it simply answers your question. Ask in any language.
@@ -338,8 +353,11 @@ document.querySelectorAll('[data-sample]').forEach(b => b.onclick = () => {
   $('#posted').value = '2024-03-15';
 });
 
-function renderPipeline(el, state, checking) {
-  const shown = STAGES.filter(([k]) => checking || (k !== 'extract' && k !== 'verify'));
+function renderPipeline(el, state) {
+  // extract/verify only exist when the planner found something to check, so they
+  // appear as their events arrive rather than being promised up front.
+  const shown = STAGES.filter(([k]) =>
+    !['extract', 'verify'].includes(k) || state[k]);
   el.innerHTML = shown.map(([key, name]) => {
     const st = state[key] || {};
     return `<div class="stage ${st.status === 'done' ? 'done' : st.status === 'start' ? 'active' : ''}">
@@ -347,7 +365,14 @@ function renderPipeline(el, state, checking) {
       <span class="name">${name}</span>
       <span class="detail">${esc(st.detail || '')}</span>
     </div>`;
-  }).join('');
+  }).join('') + `<div class="recap">✓ ${shown.length} stages complete — show working</div>`;
+}
+
+// Once it has finished, the pipeline has done its job of explaining the wait.
+// Leaving it expanded just pushes the answer down the page.
+function foldPipeline(el) {
+  el.classList.add('folded');
+  el.querySelector('.recap').onclick = () => el.classList.toggle('folded');
 }
 
 function renderVerdicts(v) {
@@ -388,33 +413,34 @@ function renderGuide(g) {
     </div>`).join('');
   if (g.warnings?.length)
     html += `<h2>Traps</h2><ul class="plain">${g.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>`;
+  if (g.open_questions?.length)
+    html += `<h2>Official sources don't cover this — confirm it yourself</h2>` +
+      `<ul class="plain">${g.open_questions.map(q => `<li>${esc(q)}</li>`).join('')}</ul>`;
   return html;
 }
 
-// Open questions are the agent asking the user something — the thing that makes
-// this a conversation rather than a lookup. Give them their own callout.
+// The agent asking the user something — the thing that makes this a conversation
+// rather than a lookup. It gets its own callout, right where the eye lands after the guide.
 function renderAsking(g) {
-  if (!g.open_questions?.length) return '';
+  if (!g.follow_up_question) return '';
   return `<div class="asking">
     <div class="lead">Hearsay needs to know</div>
-    <ul>${g.open_questions.map(q => `<li>${esc(q)}</li>`).join('')}</ul>
+    <p style="margin:0;font-size:15.5px">${esc(g.follow_up_question)}</p>
     <button class="cta" data-answer="1">Answer this &rarr;</button>
   </div>`;
 }
 
 function renderSources(list) {
   if (!list?.length) return '';
-  return `<h2>Official documents consulted</h2><ul class="plain sources">` +
+  return `<details class="fold">
+    <summary>Official documents consulted (${list.length})</summary>
+    <ul class="plain sources">` +
     list.slice(0, 8).map(s =>
       `<li>${esc(s.last_update)} · <a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.doc_id)} ${esc(s.title)}</a></li>`
-    ).join('') + `</ul>`;
+    ).join('') + `</ul></details>`;
 }
 
-function renderYouSaid(question, advice) {
-  const bits = [];
-  if (advice) bits.push(advice);
-  if (question) bits.push(question);
-  const text = bits.join('\n\n');
+function renderYouSaid(text) {
   const long = text.length > 260;
   return `<div class="you">
     <div class="who">You</div>
@@ -424,45 +450,39 @@ function renderYouSaid(question, advice) {
 }
 
 async function send() {
-  const advice = $('#advice').value.trim();
-  const question = $('#question').value.trim();
-  const checking = advice.length > 0;
-
-  if (!checking && !question) { $('#question').focus(); return; }
+  const text = $('#advice').value.trim();
+  if (!text) { $('#advice').focus(); return; }
 
   const body = {
     session_id: SESSION,
-    question: question || (checking ? 'Is this advice still accurate?' : ''),
-    community_text: advice,
-    community_date: checking ? $('#posted').value.trim() : '',
+    text,
+    posted_date: $('#posted').value.trim(),
   };
 
   // Build this turn's block and append it — earlier turns stay on screen.
   turnCount += 1;
   const turn = document.createElement('div');
   turn.className = 'turn';
-  turn.innerHTML = renderYouSaid(question, advice)
+  turn.innerHTML = renderYouSaid(text)
     + '<div class="pipeline on"></div><div class="result"></div>';
   $('#conversation').appendChild(turn);
 
   const pipeEl = turn.querySelector('.pipeline');
   const outEl = turn.querySelector('.result');
   const state = {};
-  renderPipeline(pipeEl, state, checking);
+  renderPipeline(pipeEl, state);
   turn.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   // Clear the composer so the next message starts fresh.
   $('#advice').value = '';
   $('#posted').value = '';
-  $('#question').value = '';
   $('#go').disabled = true;
   $('#reset').hidden = false;
   if (turnCount === 1) {
     $('#samples').hidden = true;
-    $('#adviceOpt').textContent = '(optional — paste something else to check)';
     $('#advice').rows = 3;
     $('#go').textContent = 'Send';
-    $('#question').placeholder = 'Reply, or ask a follow-up…';
+    $('#advice').placeholder = 'Reply, ask a follow-up, or paste something else…';
   }
 
   try {
@@ -487,11 +507,12 @@ async function send() {
 
         if (msg.type === 'stage') {
           state[msg.stage] = { status: msg.status, detail: msg.detail };
-          renderPipeline(pipeEl, state, checking);
+          renderPipeline(pipeEl, state);
         } else if (msg.type === 'result') {
           const d = msg.data;
           outEl.innerHTML = renderVerdicts(d.verdicts) + renderGuide(d.guide)
                           + renderAsking(d.guide) + renderSources(d.official_sources);
+          foldPipeline(pipeEl);
         } else if (msg.type === 'error') {
           outEl.innerHTML = `<div class="err">${esc(msg.message)}</div>`;
         }
@@ -501,18 +522,16 @@ async function send() {
     outEl.innerHTML = `<div class="err">${esc(e.message)}</div>`;
   } finally {
     $('#go').disabled = false;
-    $('#question').focus();
+    $('#advice').focus();
   }
 }
 
 $('#go').onclick = send;
 
 // Cmd/Ctrl+Enter sends from either field; Enter sends from the one-line question.
-$('#question').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
-});
+// Enter sends; Shift+Enter makes a new line, so pasted multi-line advice still works.
 $('#advice').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); }
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
 });
 
 $('#conversation').addEventListener('click', e => {
@@ -521,8 +540,8 @@ $('#conversation').addEventListener('click', e => {
     e.target.remove();
   }
   if (e.target.matches('[data-answer]')) {
-    $('#question').focus();
-    $('#question').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('#advice').focus();
+    $('#advice').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 });
 

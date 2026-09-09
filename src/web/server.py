@@ -65,9 +65,8 @@ def record_turn(session_id, turn):
 
 
 class QueryRequest(BaseModel):
-    question: str = ""
-    community_text: str = ""
-    community_date: str = ""
+    text: str = ""            # whatever the user typed — question, advice, or both
+    posted_date: str = ""     # only meaningful if they pasted something
     session_id: str = ""
 
 
@@ -98,7 +97,12 @@ def serialise(result):
 
 @app.get("/")
 async def index():
-    return FileResponse(STATIC / "index.html")
+    # No caching: during development and demo prep a stale index.html silently talks to a
+    # newer API, which surfaces as confusing "nothing to work with" style errors.
+    return FileResponse(
+        STATIC / "index.html",
+        headers={"Cache-Control": "no-store, must-revalidate", "Pragma": "no-cache"},
+    )
 
 
 @app.get("/api/health")
@@ -131,15 +135,14 @@ async def query(req: QueryRequest):
             try:
                 navigator = get_navigator()
                 result = navigator.run(
-                    question=req.question,
-                    community_text=req.community_text,
-                    community_date=req.community_date,
+                    text=req.text,
+                    posted_date=req.posted_date,
                     history=get_history(req.session_id),
                     on_event=on_event,
                 )
                 record_turn(req.session_id, {
-                    "question": req.question,
-                    "community_text": bool(req.community_text.strip()),
+                    "question": req.text,
+                    "community_text": result["plan"].contains_claims_to_check,
                     "procedure": result["plan"].procedure,
                     "situation": result["plan"].user_situation,
                     "summary": result["guide"].summary,

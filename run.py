@@ -222,7 +222,7 @@ def main():
         q = " ".join(sys.argv[2:]) or \
             "My student residence permit expires soon. How do I renew it?"
         print(f"\nASK MODE — {q}")
-        show(nav.run(question=q))
+        show(nav.run(text=q))
 
     elif mode in ("verify", "verify-zh"):
         sample = SAMPLE_ZH if mode == "verify-zh" else SAMPLE_EN
@@ -230,14 +230,13 @@ def main():
                     else "Is this renewal advice still accurate?")
         print("\nVERIFY MODE — community advice under review:")
         print(textwrap.indent(sample.strip(), "   | "))
-        show(nav.run(question=question, community_text=sample, community_date=SAMPLE_DATE))
+        show(nav.run(text=f"{sample}\n\n{question}", posted_date=SAMPLE_DATE))
 
     else:  # demo
         print("\nASK MODE")
-        show(nav.run(question="My student residence permit expires soon. How do I renew it?"))
+        show(nav.run(text="My student residence permit expires soon. How do I renew it?"))
         print("\n\nVERIFY MODE")
-        show(nav.run(question="Is this renewal advice still accurate?",
-                     community_text=SAMPLE_EN, community_date=SAMPLE_DATE))
+        show(nav.run(text=SAMPLE_EN, posted_date=SAMPLE_DATE))
 
     return 0
 

@@ -72,8 +72,23 @@ Given a question in any language:
 3. Translate the question into formal French administrative search terms. This step
    decides whether anything is found at all, so use the wording that genuinely appears
    in French government documents, not a literal translation.
-4. Note which key facts are still missing for an accurate answer.
+4. Note which key facts are still missing for an accurate answer. Be demanding about this.
+   In French administration the same question has different answers depending on:
+     - which permit the person holds (étudiant, passeport talent, vie privée et familiale,
+       Algerian nationals under the 1968 accord, EU/EEA…),
+     - which département or préfecture handles them — practice varies a great deal,
+     - their nationality, where a bilateral agreement may override the general rule,
+     - where they are in the timeline (how long until expiry, first renewal or not).
+   If the user has not told you the ones that matter for their question, list them. Saying
+   nothing is missing when something is means the answer comes out generic — which is the
+   exact failure that sends people back to asking their friends.
 5. Record the language the user wrote in, so later stages answer in it.
+6. Decide whether the input actually contains anything to verify. Users type whatever is on
+   their mind into one box — sometimes a plain question about their own situation, sometimes
+   advice someone gave them, sometimes both. Only set contains_claims_to_check when there
+   are assertions from someone else that official sources could confirm or contradict.
+   "My permit expires soon, how do I renew it?" is a question, not a claim. Never route a
+   plain question into verification: ruling on the user's own question is nonsense.
 
 When earlier turns of the conversation are supplied, read them first. A follow-up like
 "then what documents do I need?" or "I have a passeport talent" only makes sense against
@@ -115,6 +130,8 @@ Requirements:
 - Call search_official_docs to check. Never rule from memory.
 - Call check_information_recency to compare dates whenever timing could matter.
 - Attach the official document ID, URL and last update date to every verdict.
+- Keep each explanation to two sentences at most. Lead with what is wrong. The reader is
+  scanning several verdicts at once, not reading an essay.
 - When you cannot find evidence, return not_covered. An honest "the official documents
   don't say" is far more useful to this user than a confident guess.
 """
@@ -133,6 +150,23 @@ Requirements:
   timing pitfalls.
 - If official documents do not cover the user's situation, do not improvise. Put it in
   open_questions and say who they should ask.
+
+TWO DIFFERENT THINGS, DO NOT CONFUSE THEM:
+
+- `follow_up_question` — what YOU need from the USER. Required. If any detail you do not
+  know would change your answer (permit type, département, nationality, time until expiry),
+  ask for it here, in one replyable line. This is how the conversation continues, and it is
+  the difference between an answer written for this person and a generic procedure they
+  could have found themselves. On a first exchange you will nearly always have something to
+  ask; leaving it empty is a claim that nothing could change your answer.
+
+- `open_questions` — what the USER must confirm with an AUTHORITY, because official
+  documents are silent on their case. Name who to ask. Not a place to interrogate the user.
+
+BREVITY IS A FEATURE. This is read on a screen by someone who is stressed and short on
+time. Summary: two sentences. Steps: at most six, one imperative line each. Traps: at most
+three. Cut every sentence that does not change what the reader does next. A wall of text is
+the same failure as no answer.
 
 NEVER return a guide with no steps. Missing information is normal — French procedures
 depend on permit type, département and nationality, and the user often does not know which
@@ -289,7 +323,10 @@ class Navigator:
 
     # ---------- 5. guide ----------
     def build_guide(self, question, plan, evidence_text, verdicts=None, history=None) -> Guide:
-        agent = _agent(GUIDE_PROMPT, tools=[search_official_docs])
+        # Deliberately no tools here. Stage 2 already retrieved the evidence and stage 4
+        # already dug deeper where it mattered; giving this agent a search tool only makes
+        # it re-retrieve in a loop, which is slow and adds nothing. One call, one guide.
+        agent = _agent(GUIDE_PROMPT)
         parts = [
             f"The user writes in {plan.user_language}. Write the entire guide in that language.",
             f"\nUser question: {question}",
@@ -312,40 +349,58 @@ class Navigator:
                 + "\nGive the steps that hold regardless, mark the ones that depend on this,"
                 " and put the question in open_questions so they can just reply to it."
             )
+        else:
+            parts.append(
+                "\nBefore you finish: is there any detail you do not know that would change "
+                "this answer — permit type, département, nationality, time until expiry? "
+                "If so, ask for it in open_questions."
+            )
         parts.append("\nWrite the guide. Label every step's source honestly.")
 
-        agent("\n".join(parts))
-        # Same constraint as in verify(): end the conversation on a user message.
-        return agent.structured_output(
-            Guide,
-            "Now return the structured guide, written entirely in "
-            f"{plan.user_language}. Label every step's source honestly.",
+        parts.append(
+            f"\nWrite the guide in {plan.user_language}. Label every step's source honestly. "
+            "Populate `steps` — at least one, at most six, each a single imperative line."
         )
+        guide = agent.structured_output(Guide, "\n".join(parts))
+
+        # Belt and braces. Prompting alone has not proved sufficient: the tool-using pass
+        # sometimes answers in prose that the extraction step cannot turn into steps, and a
+        # guide with no steps is useless to someone who came here stuck.
+        if not guide.steps:
+            guide = agent.structured_output(
+                Guide,
+                "\n".join(parts) + "\n\nYour previous attempt returned no steps, which is "
+                "not acceptable. Turn the official evidence above into a numbered checklist: "
+                "at least one step, at most six, each a single imperative line saying what to "
+                "do, where, and by when. If a detail is still missing, give the steps that "
+                "hold regardless and put the missing detail in open_questions.",
+            )
+
+        return guide
 
     # ---------- entry point ----------
-    def run(self, question="", community_text="", community_date="", profile="",
-            history=None, on_event=None):
+    def run(self, text="", posted_date="", history=None, on_event=None,
+            question="", community_text="", community_date=""):
         """
-        Ask mode:    pass `question` only.
-        Verify mode: pass `community_text` (optionally with a `question` framing it).
+        One entry point. The user types whatever they have — a question, advice someone
+        gave them, or both — and the planner decides whether any of it is checkable.
+        Asking the user to classify their own input was a design mistake; this is the fix.
 
-        `on_event(stage, status, detail)` is called as each stage starts and finishes,
-        so a UI can show the pipeline working instead of an opaque spinner. A run takes
-        a minute or two; making the stages visible turns the wait into the story.
+        The question/community_text/community_date arguments are kept for the CLI.
         """
-        if not question and not community_text:
-            raise ValueError("provide either a question or community advice to check")
+        text = text or "\n\n".join(p for p in (community_text, question) if p).strip()
+        posted_date = posted_date or community_date
+        if not text:
+            raise ValueError("nothing to work with — provide some text")
 
         def emit(stage, status, detail=""):
             if on_event:
                 on_event(stage, status, detail)
 
-        seed = question or "Is the following community advice still accurate?"
-
         emit("plan", "start")
-        plan = self.plan(seed, profile, history=history)
+        plan = self.plan(text, history=history)
         emit("plan", "done",
-             f"Identified as \u201c{plan.procedure}\u201d \u00b7 answering in {plan.user_language}")
+             f"\u201c{plan.procedure}\u201d \u00b7 answering in {plan.user_language}")
 
         emit("retrieve", "start")
         official = self.retrieve(plan)
@@ -357,22 +412,23 @@ class Navigator:
 
         verdicts = None
         claim_set = None
-        if community_text.strip():
+        if plan.contains_claims_to_check:
             emit("extract", "start")
-            items = gather([PastedSource(community_text, posted_date=community_date)], seed)
+            items = gather([PastedSource(text, posted_date=posted_date)], text)
             claim_set = self.extract_claims(items, plan.user_language)
             emit("extract", "done", f"{len(claim_set.claims)} checkable claims found")
 
-            emit("verify", "start", f"checking {len(claim_set.claims)} claims")
-            verdicts = self.verify(claim_set, evidence_text, plan.user_language)
-            counts = {}
-            for v in verdicts.verdicts:
-                counts[v.status] = counts.get(v.status, 0) + 1
-            emit("verify", "done",
-                 " \u00b7 ".join(f"{n} {s.replace('_', ' ')}" for s, n in counts.items()))
+            if claim_set.claims:
+                emit("verify", "start", f"checking {len(claim_set.claims)} claims")
+                verdicts = self.verify(claim_set, evidence_text, plan.user_language)
+                counts = {}
+                for v in verdicts.verdicts:
+                    counts[v.status] = counts.get(v.status, 0) + 1
+                emit("verify", "done",
+                     " \u00b7 ".join(f"{n} {s.replace('_', ' ')}" for s, n in counts.items()))
 
         emit("guide", "start")
-        guide = self.build_guide(seed, plan, evidence_text, verdicts, history=history)
+        guide = self.build_guide(text, plan, evidence_text, verdicts, history=history)
         emit("guide", "done", f"{len(guide.steps)} steps")
 
         return {
