@@ -110,8 +110,8 @@ Requires Python 3.10+ and AWS credentials with Amazon Bedrock access (model acce
 for Anthropic Claude).
 
 ```bash
-git clone https://github.com/alineyyy/HearSay.git
-cd HearSay
+git clone https://github.com/alineyyy/Hearsay.git
+cd Hearsay
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```

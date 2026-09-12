@@ -86,33 +86,40 @@ at normal speed first so viewers see the stages, then accelerate through the wai
 
 ---
 
-## 4 · Demo B — it asks you back — 2:15–3:00
+## 4 · Demo B — it asks you back, in whatever language you switch to — 2:15–3:05
 
-🎞 New question, plain: `My student permit expires in November. How do I renew it?`
-Speed up the wait again.
-
-🎙
-> It also works the other way round. Just ask.
-
-🎞 Answer appears — scroll to the green "Hearsay needs to know" card.
+🎞 New question, **in Chinese**: `我的学生居留快到期了怎么续?`
+Speed up the wait.
 
 🎙
-> But notice what it does here. It doesn't hand me a generic procedure — it asks me
-> which permit I actually hold. Because in France, the honest answer is "it depends",
-> and a tool that pretends otherwise is how bad advice gets made in the first place.
+> It also works the other way round — you can just ask. And you can ask in your own
+> language.
 
-🎞 Click "Answer this", type the permit type and city, send. Speed up the wait.
-
-🎙
-> I tell it. And it comes back with the version that applies to me.
-
-🎞 *(Optional, 8 seconds)* Ask the same thing in Chinese; show the Chinese answer.
+🎞 Answer appears **in Chinese**. Scroll to the green "Hearsay needs to know" card with
+its tappable options.
 
 🎙
-> Ask in any language — the answer comes back in that language, while the search
-> always runs through French. For this audience, that's not a feature. It's the point.
+> Notice what it does here. It doesn't hand me a generic procedure — it asks which permit
+> I actually hold, and offers the likely answers so I can tap one. Because in France the
+> honest answer is "it depends", and a tool that pretends otherwise is how bad advice gets
+> made in the first place.
 
-*(~110 words.)*
+🎞 **Now switch language.** Instead of tapping, type in **English**:
+`I hold a titre de séjour étudiant, in Lyon.` Send. Speed up the wait.
+
+🎙
+> And here's the part I like most. I'll answer it — but in English this time.
+
+🎞 Answer comes back **in English**, continuing the same thread.
+
+🎙
+> It switches with me. It keeps the thread. And underneath, both turns searched the exact
+> same French government documents — because the language you ask in and the language the
+> law is written in are two different problems, and Hearsay keeps them separate.
+>
+> For this audience, that isn't a feature. It's the point.
+
+*(~150 words. This is the strongest 30 seconds in the video — do not rush it.)*
 
 ---
 

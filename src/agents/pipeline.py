@@ -82,7 +82,10 @@ Given a question in any language:
    If the user has not told you the ones that matter for their question, list them. Saying
    nothing is missing when something is means the answer comes out generic — which is the
    exact failure that sends people back to asking their friends.
-5. Record the language the user wrote in, so later stages answer in it.
+5. Record the language the user wrote in, so later stages answer in it. Follow their MOST
+   RECENT message: people switch language mid-conversation and the answer should switch with
+   them, immediately, without being asked. When the latest message is too short to tell (a
+   one-word reply, a tapped option), keep the language the conversation has been in.
 6. Decide whether the input actually contains anything to verify. Users type whatever is on
    their mind into one box — sometimes a plain question about their own situation, sometimes
    advice someone gave them, sometimes both. Only set contains_claims_to_check when there
@@ -159,6 +162,11 @@ TWO DIFFERENT THINGS, DO NOT CONFUSE THEM:
   the difference between an answer written for this person and a generic procedure they
   could have found themselves. On a first exchange you will nearly always have something to
   ask; leaving it empty is a claim that nothing could change your answer.
+
+- `follow_up_options` — when your question has a small set of likely answers, list them so
+  the user can tap one instead of typing. Permit type, département, yes/no: all good
+  candidates. Include an "I'm not sure" option whenever they may genuinely not know — not
+  knowing which permit you hold is extremely common and must not be a dead end.
 
 - `open_questions` — what the USER must confirm with an AUTHORITY, because official
   documents are silent on their case. Name who to ask. Not a place to interrogate the user.
@@ -359,7 +367,10 @@ class Navigator:
 
         parts.append(
             f"\nWrite the guide in {plan.user_language}. Label every step's source honestly. "
-            "Populate `steps` — at least one, at most six, each a single imperative line."
+            "Populate `steps` — at least one, at most six, each a single imperative line. "
+            "If you set `follow_up_question`, you must also fill `follow_up_options` with "
+            "2-5 tappable answers, including an 'I'm not sure' style option — the user should "
+            "be able to continue with one tap instead of typing."
         )
         guide = agent.structured_output(Guide, "\n".join(parts))
 

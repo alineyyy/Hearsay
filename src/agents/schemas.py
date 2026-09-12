@@ -217,6 +217,14 @@ class Guide(_Model):
         "string ONLY when the user has already told you everything that could change the "
         "answer — which is rare on a first exchange. In the user's language."
     )
+    follow_up_options: List[str] = Field(
+        description="REQUIRED whenever follow_up_question is non-empty: 2-5 short, likely answers to follow_up_question that the user can pick "
+        "instead of typing — e.g. for a permit question: 'titre de séjour étudiant', "
+        "'passeport talent', 'vie privée et familiale', 'I'm not sure'. Keep each under about "
+        "five words. Leave empty when the question has no small set of likely answers (a date, "
+        "a free-text situation). Always include an 'I'm not sure'-style option when the user "
+        "may genuinely not know. In the user's language, but keep French permit names in French.",
+    )
     open_questions: List[str] = Field(
         default_factory=list,
         description="Things the user must go and confirm with an authority because official "

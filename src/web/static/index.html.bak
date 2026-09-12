@@ -241,61 +241,6 @@
   .pipeline .recap:hover { color: var(--ink); }
   .pipeline.folded .recap { display: block; }
 
-  /* ---------- landing ---------- */
-  body.landing-on { overflow: hidden; }
-  #landing {
-    position: fixed; inset: 0; background: var(--paper); z-index: 50;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 32px; text-align: center;
-  }
-  #landing.gone { display: none; }
-  .stamp-mark {
-    display: inline-block; transform: rotate(-6deg); border: 2px solid var(--accent);
-    border-radius: 5px; padding: 7px 14px; margin-bottom: 40px;
-    font-family: var(--mono); font-size: 11px; letter-spacing: .18em; line-height: 1.5;
-    text-transform: uppercase; color: var(--accent); opacity: .9;
-  }
-  .wordmark {
-    font-family: Iowan Old Style, Palatino, Georgia, serif;
-    /* Small caps: the weight of all-caps, while the text stays the ordinary word.
-       The name only works if people read "hearsay" and hear its meaning. */
-    font-variant-caps: small-caps; font-feature-settings: "smcp" 1, "c2sc" 1;
-    font-size: clamp(52px, 10vw, 96px); line-height: 1.05;
-    letter-spacing: 0.04em; font-weight: 600;
-    margin: 0 0 26px; color: var(--ink);
-  }
-  .lede {
-    max-width: 620px; font-size: clamp(16px, 2.2vw, 19px); line-height: 1.6;
-    color: var(--ink-soft); margin: 0 0 40px;
-  }
-  .lede b { color: var(--ink); font-weight: 600; }
-  .enter {
-    font: inherit; font-size: 17px; font-weight: 560; padding: 16px 34px;
-    border: none; border-radius: 9px; background: var(--accent); color: var(--paper);
-    cursor: pointer; display: inline-flex; align-items: center; gap: 11px;
-    transition: transform .12s ease;
-  }
-  .enter:hover { transform: translateY(-1px); }
-  .enter .arr { font-size: 15px; opacity: .8; }
-  .anylang {
-    margin: 20px 0 0; font-family: var(--mono); font-size: 12px; letter-spacing: .1em;
-    text-transform: uppercase; color: var(--ink-faint);
-  }
-  .ground {
-    position: absolute; bottom: 30px; left: 0; right: 0;
-    font-size: 12.5px; color: var(--ink-faint);
-  }
-  .ground a { color: var(--ink-soft); }
-
-  /* ---------- option chips ---------- */
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-  .chips button {
-    font: inherit; font-size: 13.5px; padding: 7px 14px; border-radius: 999px;
-    border: 1px solid var(--accent); background: transparent; color: var(--accent);
-    cursor: pointer; transition: .12s;
-  }
-  .chips button:hover { background: var(--accent); color: var(--paper); }
-
   .err {
     background: var(--wrong-bg); border: 1px solid var(--wrong); color: var(--wrong);
     padding: 14px 16px; border-radius: 8px; font-family: var(--mono); font-size: 13.5px;
@@ -309,25 +254,7 @@
 </style>
 </head>
 <body>
-<div id="landing">
-  <div class="stamp-mark">Checked&nbsp;against&nbsp;source<br>&middot;&nbsp;with&nbsp;the&nbsp;date&nbsp;&middot;</div>
-  <h1 class="wordmark">Hearsay</h1>
-  <p class="lede">
-    The advice international students pass around is confident, specific,
-    and often two years out of date.
-    <b>Hearsay checks it against dated official French sources</b> &mdash; and tells you
-    exactly what changed.
-  </p>
-  <button class="enter" id="enter">What have you been told? <span class="arr">&rarr;</span></button>
-  <p class="anylang">Ask in any language</p>
-  <p class="ground">
-    5,552 official documents &middot;
-    <a href="https://www.data.gouv.fr/datasets/service-public-fr-guide-vos-droits-et-demarches-particuliers/" target="_blank" rel="noopener">Service-Public.gouv.fr</a>
-    &middot; Licence Ouverte 2.0
-  </p>
-</div>
-
-<div class="wrap" id="app" hidden>
+<div class="wrap">
 
   <header>
     <div class="brand">
@@ -421,16 +348,6 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 const SESSION = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
 let turnCount = 0;
 
-// The landing page states the case; the app is where the work happens. One button
-// between them, so nobody meets a form before they know what this is.
-document.body.classList.add('landing-on');
-$('#enter').onclick = () => {
-  $('#landing').classList.add('gone');
-  document.body.classList.remove('landing-on');
-  $('#app').hidden = false;
-  $('#advice').focus();
-};
-
 document.querySelectorAll('[data-sample]').forEach(b => b.onclick = () => {
   $('#advice').value = SAMPLES[b.dataset.sample];
   $('#posted').value = '2024-03-15';
@@ -509,10 +426,7 @@ function renderAsking(g) {
   return `<div class="asking">
     <div class="lead">Hearsay needs to know</div>
     <p style="margin:0;font-size:15.5px">${esc(g.follow_up_question)}</p>
-    ${g.follow_up_options?.length
-      ? `<div class="chips">${g.follow_up_options.map(o =>
-          `<button data-pick="${esc(o)}">${esc(o)}</button>`).join('')}</div>`
-      : '<button class="cta" data-answer="1">Answer this &rarr;</button>'}
+    <button class="cta" data-answer="1">Answer this &rarr;</button>
   </div>`;
 }
 
@@ -562,10 +476,6 @@ async function send() {
   // Clear the composer so the next message starts fresh.
   $('#advice').value = '';
   $('#posted').value = '';
-  // Let go of the caret. Typing left focus in the box; clearing it then makes the
-  // placeholder reappear under a blinking cursor, which reads as "type again" exactly
-  // when attention should be moving to the answer.
-  $('#advice').blur();
   $('#go').disabled = true;
   $('#reset').hidden = false;
   if (turnCount === 1) {
@@ -611,9 +521,8 @@ async function send() {
   } catch (e) {
     outEl.innerHTML = `<div class="err">${esc(e.message)}</div>`;
   } finally {
-    // Deliberately no focus() here. The answer has just arrived — pulling the cursor
-    // into the composer implies they should type again before they have read it.
     $('#go').disabled = false;
+    $('#advice').focus();
   }
 }
 
@@ -629,11 +538,6 @@ $('#conversation').addEventListener('click', e => {
   if (e.target.matches('.more')) {
     e.target.previousElementSibling.classList.remove('clip');
     e.target.remove();
-  }
-  if (e.target.matches('[data-pick]')) {
-    $('#advice').value = e.target.dataset.pick;
-    send();
-    return;
   }
   if (e.target.matches('[data-answer]')) {
     $('#advice').focus();
