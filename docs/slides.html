@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hearsay — deck</title>
+<style>
+  :root {
+    --paper:#fbfaf7; --ink:#16150f; --ink-soft:#56534a; --ink-faint:#8b877c;
+    --rule:#e3e0d6; --accent:#1c4e3f; --amber:#a8650a;
+    --serif: Iowan Old Style, Palatino, Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; background:#000; }
+  body { font-family:var(--sans); overflow:hidden; }
+
+  #stage {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:1600px; height:900px; background:var(--paper); overflow:hidden;
+  }
+  .slide {
+    position:absolute; inset:0; display:none;
+    flex-direction:column; align-items:center; justify-content:center;
+    padding:110px; text-align:center;
+  }
+  .slide.on { display:flex; }
+
+  .big   { font-family:var(--serif); font-size:64px; line-height:1.28; color:var(--ink);
+           max-width:1180px; font-weight:500; }
+  .mid   { font-family:var(--serif); font-size:54px; line-height:1.35; color:var(--ink); font-weight:500; }
+  .hook  { font-family:var(--serif); font-size:62px; color:var(--amber); font-weight:600;
+           margin-top:44px; opacity:0; transition:opacity .5s ease; }
+  .hook.show { opacity:1; }
+
+  .stamp {
+    display:inline-block; transform:rotate(-6deg); border:2.5px solid var(--accent);
+    border-radius:6px; padding:10px 20px; margin-bottom:52px;
+    font-family:var(--mono); font-size:15px; letter-spacing:.2em; line-height:1.55;
+    text-transform:uppercase; color:var(--accent);
+  }
+  .wordmark {
+    font-family:var(--serif); font-variant-caps:small-caps;
+    font-feature-settings:"smcp" 1,"c2sc" 1;
+    font-size:128px; letter-spacing:.04em; font-weight:600; line-height:1; color:var(--ink);
+  }
+  .pitch { margin-top:38px; font-size:29px; line-height:1.55; color:var(--ink-soft); max-width:1080px; }
+  .pitch b { color:var(--ink); font-weight:600; }
+
+  .huge {
+    font-family:var(--serif); font-size:210px; line-height:1; font-weight:600;
+    color:var(--accent); letter-spacing:-0.02em;
+  }
+  .caption { margin-top:26px; font-size:26px; color:var(--ink-faint); }
+  .kicker  { margin-top:66px; font-family:var(--serif); font-size:46px; color:var(--ink); font-weight:500; }
+  .kicker i { font-style:italic; color:var(--amber); }
+
+  .arch { width:1340px; }
+  .note { margin-top:34px; font-size:25px; color:var(--ink-soft); }
+  .note .g { color:var(--accent); font-weight:650; }
+  .note .a { color:var(--amber);  font-weight:650; }
+
+  .end   { font-family:var(--mono); font-size:26px; line-height:2.1; color:var(--ink-soft); }
+  .end .u { color:var(--accent); }
+  .fine  { position:absolute; bottom:64px; left:0; right:0; font-size:19px; color:var(--ink-faint); }
+
+  #num { position:absolute; bottom:34px; right:46px; font-family:var(--mono);
+         font-size:16px; color:var(--ink-faint); }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 1 -->
+  <section class="slide on">
+    <p class="big">Every international student in France<br>has a senior who helped them.</p>
+  </section>
+
+  <!-- 2 -->
+  <section class="slide">
+    <p class="mid">That advice is generous.<br>It’s specific.</p>
+    <p class="hook" id="hook">And it’s usually from last year.</p>
+  </section>
+
+  <!-- 3 -->
+  <section class="slide">
+    <div class="stamp">Checked&nbsp;against&nbsp;source<br>·&nbsp;with&nbsp;the&nbsp;date&nbsp;·</div>
+    <h1 class="wordmark">Hearsay</h1>
+    <p class="pitch">Checks the paperwork advice international students pass around against
+      <b>dated official French sources</b> — and tells you exactly what changed.</p>
+  </section>
+
+  <!-- 4 -->
+  <section class="slide">
+    <img class="arch" src="architecture.svg" alt="Hearsay architecture">
+    <p class="note"><span class="g">Green — agents make judgements.</span>
+      &nbsp;&nbsp;<span class="a">Amber — deterministic code supplies facts.</span></p>
+  </section>
+
+  <!-- 5 -->
+  <section class="slide">
+    <p class="huge">445,000</p>
+    <p class="caption">international students in France, 2024–25</p>
+    <p class="kicker">Almost all of them get through this<br>on <i>hearsay</i>.</p>
+  </section>
+
+  <!-- 6 -->
+  <section class="slide">
+    <h1 class="wordmark" style="font-size:92px">Hearsay</h1>
+    <p class="end" style="margin-top:40px">
+      <span class="u">github.com/alineyyy/Hearsay</span><br>
+      MIT licence · built with AWS Strands Agents on Amazon Bedrock
+    </p>
+    <p class="fine">Official data: Service-Public.gouv.fr / DILA · Licence Ouverte 2.0 (Etalab)</p>
+  </section>
+
+  <div id="num"></div>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  let i = 0, hookShown = false;
+
+  function fit() {
+    const s = Math.min(innerWidth / 1600, innerHeight / 900);
+    document.getElementById('stage').style.transform =
+      `translate(-50%,-50%) scale(${s})`;
+  }
+  addEventListener('resize', fit); fit();
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle('on', k === i));
+    document.getElementById('num').textContent = `${i + 1} / ${slides.length}`;
+    if (i !== 1) { hookShown = false; document.getElementById('hook').classList.remove('show'); }
+  }
+
+  // Slide 2 reveals its punchline on the first press — the pause is the joke.
+  function next() {
+    if (i === 1 && !hookShown) {
+      hookShown = true;
+      document.getElementById('hook').classList.add('show');
+      return;
+    }
+    show(i + 1);
+  }
+
+  addEventListener('keydown', e => {
+    if (['ArrowRight', ' ', 'PageDown', 'Enter'].includes(e.key)) { e.preventDefault(); next(); }
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); show(i - 1); }
+    if (e.key === 'f') document.documentElement.requestFullscreen?.();
+  });
+  addEventListener('click', next);
+  show(0);
+</script>
+</body>
+</html>

@@ -72,7 +72,7 @@ question / pasted community advice   (any language)
    4. Verifier agent       → VerdictSet  (per-claim verdict + recency check)
       (tools: search_official_docs, check_information_recency)
               │
-   5. Guide writer agent   → Guide       (checklist,每 step 标注来源)
+   5. Guide writer agent   → Guide       (checklist, sources labelled)
 ```
 
 **Governing rule:** facts come from deterministic tools (retrieval, date arithmetic);

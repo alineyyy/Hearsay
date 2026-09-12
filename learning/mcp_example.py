@@ -1,22 +1,26 @@
 """
-MCP 集成示例：让 agent 通过 MCP 调用外部工具服务
+MCP: letting an agent call tools that live outside the process.
 
-这里接的是 AWS 官方提供的 "AWS Documentation MCP Server"：
-一个专门用来查询 AWS 官方文档的 MCP 服务，不需要额外申请 API key。
-运行它靠的是 `uvx`（uv 自带的一次性运行工具的命令，会自动下载并运行这个 MCP server）。
+Kept from the first day of the project. Not part of Hearsay — the product lives in src/.
 
-运行方式：
+This connects to the AWS Documentation MCP Server: an official, free service that can
+search and read AWS docs. Nothing to sign up for. `uvx` downloads and runs it on demand.
+
+The thing worth noticing: a local @tool function and a remote MCP tool look identical to
+the agent. That uniformity is the whole point of the protocol.
+
+Run:
   python3 -u mcp_example.py
 
-第一次运行会比较慢，因为 uvx 要先下载这个 MCP server 包。
+The first run is slow while uvx fetches the server.
 """
 
 from mcp import stdio_client, StdioServerParameters
 from strands import Agent
 from strands.tools.mcp import MCPClient
 
-# 1. 定义怎么启动这个 MCP server：本质是本地起一个子进程，
-#    Strands 通过标准输入输出(stdio)和它"说话"，这就是 MCP 协议的一种传输方式。
+# Describes how to start the server: a local subprocess that Strands talks to over
+# stdin/stdout. That is one of MCP's transports; HTTP and SSE are the others.
 aws_docs_client = MCPClient(lambda: stdio_client(
     StdioServerParameters(
         command="uvx",
@@ -24,12 +28,11 @@ aws_docs_client = MCPClient(lambda: stdio_client(
     )
 ))
 
-# 2. 注意：MCP 连接必须在 `with` 代码块里用，
-#    出了这个 block 连接就断了，agent 也就没法再调用这些工具了。
+# The connection has a lifetime. Outside this `with` block it is closed, and any tool
+# call the agent tries will fail — a mistake worth making once to remember it.
 with aws_docs_client:
     tools = aws_docs_client.list_tools_sync()
-    print(f"这个 MCP server 提供了 {len(tools)} 个工具：",
-          [t.tool_name for t in tools])
+    print(f"This MCP server offers {len(tools)} tools:", [t.tool_name for t in tools])
 
     agent = Agent(tools=tools)
-    agent("AWS Lambda 是什么？帮我查一下官方文档给个简短解释。")
+    agent("What is AWS Lambda? Check the official documentation and answer briefly.")

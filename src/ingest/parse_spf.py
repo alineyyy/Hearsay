@@ -1,11 +1,11 @@
 """
-把 service-public.fr 的开放数据(XML)解析成可检索的语料库。
+Parse the service-public.fr open data (XML) into a retrievable corpus.
 
-输入: data/spf_raw/*.xml   (5552 份官方 fiche)
-输出: data/corpus.jsonl    (每行一份文档)
+    in:  data/spf_raw/*.xml   (5,552 official fiches)
+    out: data/corpus.jsonl    (one document per line)
 
-数据来源: Service-Public.gouv.fr / DILA, 通过 data.gouv.fr 发布
-许可: Licence Ouverte 2.0 (Etalab) —— 使用时须注明来源与更新日期
+Source: Service-Public.gouv.fr / DILA, published via data.gouv.fr.
+Licence: Licence Ouverte 2.0 (Etalab) — reuse requires naming the source and the date.
 """
 
 import json
@@ -20,19 +20,19 @@ ROOT = Path(__file__).resolve().parents[2]
 RAW_DIR = ROOT / "data" / "spf_raw"
 OUT_PATH = ROOT / "data" / "corpus.jsonl"
 
-# 正文里这些标签本身不产出文字,只是容器
+# These elements are containers; they contribute no readable text of their own
 SKIP_TEXT_TAGS = {"Source", "Commentaire"}
 
 
 def clean(s):
-    """压缩空白,去掉不间断空格。"""
+    """Collapse whitespace and normalise non-breaking spaces."""
     if not s:
         return ""
     return re.sub(r"\s+", " ", s.replace("\xa0", " ")).strip()
 
 
 def node_text(el):
-    """递归取出一个节点下的所有可读文字。"""
+    """Recursively collect all readable text under a node."""
     parts = []
     if el.tag not in SKIP_TEXT_TAGS:
         if el.text:
@@ -46,9 +46,11 @@ def node_text(el):
 
 def render_block(el, out, depth=0):
     """
-    把正文结构展开成带标题层级的纯文本行。
-    重点保留 Cas(情况分支)的标签 —— 官方文档用它区分不同身份/情形,
-    这正是"特殊情况"问题的答案所在。
+    Flatten the body into text lines that keep their heading hierarchy.
+
+    Cas blocks matter most: the official documents use them to branch by situation
+    (student, employee, this nationality, that timeline), which is exactly where the
+    answer to an edge-case question lives. Their labels are preserved as [CASE] markers.
     """
     tag = el.tag
 
@@ -68,7 +70,7 @@ def render_block(el, out, depth=0):
         title = el.find("Titre")
         label = clean(node_text(title)) if title is not None else ""
         if label:
-            out.append(f"[情况] {label}")
+            out.append(f"[CASE] {label}")
         for child in el:
             if child.tag != "Titre":
                 render_block(child, out, depth)
@@ -94,7 +96,7 @@ def render_block(el, out, depth=0):
     elif tag == "OuSAdresser":
         t = clean(node_text(el))
         if t:
-            out.append("[在哪办] " + t)
+            out.append("[WHERE TO APPLY] " + t)
 
     elif tag in ("Paragraphe", "Texte", "Introduction"):
         if tag == "Paragraphe":
@@ -106,7 +108,7 @@ def render_block(el, out, depth=0):
                 render_block(child, out, depth)
 
     else:
-        # 其他容器继续往下走
+        # Anything else is a container — keep descending
         for child in el:
             render_block(child, out, depth)
 
@@ -129,7 +131,7 @@ def parse_fiche(path):
     if not fid or not title:
         return None
 
-    # 更新日期 —— 判断信息时效性的关键字段
+    # Update dates — the fields the recency verdicts depend on
     last_major = (root.get("dateDerniereModificationImportante") or "")[:10]
     modified = ""
     m = re.search(r"(\d{4}-\d{2}-\d{2})", dc("date"))
@@ -181,7 +183,7 @@ def parse_fiche(path):
 def main():
     files = sorted(RAW_DIR.glob("*.xml"))
     if not files:
-        sys.exit(f"找不到原始数据,请先解压到 {RAW_DIR}")
+        sys.exit(f"No raw data found. Unzip the dataset into {RAW_DIR} first.")
 
     n_ok = 0
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -192,7 +194,7 @@ def main():
                 out.write(json.dumps(doc, ensure_ascii=False) + "\n")
                 n_ok += 1
 
-    print(f"解析完成: {n_ok} / {len(files)} 份 -> {OUT_PATH}")
+    print(f"Parsed {n_ok} of {len(files)} files -> {OUT_PATH}")
 
 
 if __name__ == "__main__":

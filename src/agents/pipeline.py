@@ -14,7 +14,7 @@ Five specialised agents, handing structured data to each other:
                     │
         4. Verifier ───────> VerdictSet  (per-claim judgement + recency check)
                     │
-        5. Guide writer ───> Guide       (actionable checklist,每 step 标注来源)
+        5. Guide writer ───> Guide       (actionable checklist, sources labelled)
 
 Design rule: facts come from deterministic tools (retrieval, date comparison);
 judgement comes from agents. Every conclusion traces back to an official
