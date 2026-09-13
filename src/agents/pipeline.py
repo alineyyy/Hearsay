@@ -32,7 +32,7 @@ from strands.models.bedrock import BedrockModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from agents.schemas import ClaimSet, Guide, QueryPlan, VerdictSet  # noqa: E402
+from agents.schemas import ClaimSet, FollowUpOptions, Guide, QueryPlan, VerdictSet  # noqa: E402
 from agents.tools import check_information_recency, search_official_docs  # noqa: E402
 from community.sources import CommunityItem, PastedSource, gather  # noqa: E402
 from retrieval.corpus import get_corpus  # noqa: E402
@@ -322,12 +322,27 @@ class Navigator:
         agent(prompt)
         # Pass 2: extract structured verdicts. A prompt is required here — the model
         # rejects a conversation that ends on an assistant turn (no assistant prefill).
-        return agent.structured_output(
+        verdicts = agent.structured_output(
             VerdictSet,
             "Now return the structured verdict for every claim you just verified. "
             "Each verdict must carry the official document ID, URL and last update "
             f"date you relied on. Write claim text and explanations in {language}.",
         )
+
+        # Citations, with their dates, are what separate a verdict from an opinion — and
+        # `evidence` is an optional list the model will quietly skip. Ask once more rather
+        # than showing a ruling with nothing behind it.
+        if any(not v.evidence for v in verdicts.verdicts):
+            verdicts = agent.structured_output(
+                VerdictSet,
+                "Some of those verdicts came back with no evidence attached. Every verdict "
+                "you can support needs at least one official source: the document ID, its "
+                "URL, the date it was last updated, and the passage you relied on translated "
+                f"into {language}. Return the full set again with those citations. Leave "
+                "evidence empty only where the verdict is not_covered.",
+            )
+
+        return verdicts
 
     # ---------- 5. guide ----------
     def build_guide(self, question, plan, evidence_text, verdicts=None, history=None) -> Guide:
@@ -374,6 +389,12 @@ class Navigator:
         )
         guide = agent.structured_output(Guide, "\n".join(parts))
 
+        # The tappable options are what turn the follow-up into a one-tap continuation
+        # instead of a typing task. Being an optional list, the model skips them freely.
+        # Order matters here. Repairing the steps REPLACES the whole guide object, so it
+        # has to happen before anything that assigns onto the object — otherwise those
+        # assignments are silently discarded along with the guide they were made on.
+
         # Belt and braces. Prompting alone has not proved sufficient: the tool-using pass
         # sometimes answers in prose that the extraction step cannot turn into steps, and a
         # guide with no steps is useless to someone who came here stuck.
@@ -386,6 +407,38 @@ class Navigator:
                 "do, where, and by when. If a detail is still missing, give the steps that "
                 "hold regardless and put the missing detail in open_questions.",
             )
+
+        print(f"[guide] follow_up_question={guide.follow_up_question!r} "
+              f"follow_up_options={guide.follow_up_options}", flush=True)
+
+        if guide.follow_up_question and not guide.follow_up_options:
+            picker = _agent(
+                SHARED_CONTEXT
+                + "\nYOUR ROLE: turn one follow-up question into tappable answers. Nothing "
+                "else. Give the answers a French-administration question of this kind "
+                "actually has — permit names in French, département names, yes/no — plus an "
+                "option for someone who does not know."
+            )
+            try:
+                options = picker.structured_output(
+                    FollowUpOptions,
+                    f"The user was asked:\n{guide.follow_up_question}\n\n"
+                    f"Their situation: {plan.user_situation}\n"
+                    f"Procedure: {plan.procedure}\n\n"
+                    f"Give 2-5 short answers they could tap, in {plan.user_language}.",
+                ).options
+            except Exception as exc:
+                # Options are a convenience, never the answer, so the guide still stands if
+                # this side call fails — but say so on the console. A silent except here is
+                # indistinguishable from "the model chose not to answer", and that ambiguity
+                # costs a debugging session.
+                print(f"[follow_up_options] side call failed: {type(exc).__name__}: {exc}",
+                      flush=True)
+                options = []
+            print(f"[follow_up_options] side call returned {len(options)}: {options}",
+                  flush=True)
+            # One option is not a choice; show chips only when there is something to choose.
+            guide.follow_up_options = options if len(options) >= 2 else []
 
         return guide
 

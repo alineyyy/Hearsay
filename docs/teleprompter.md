@@ -47,63 +47,55 @@ government sources — and tells you exactly what changed.
 
 ---
 
-### `[demo — paste the sample post]`
+### `[demo — click the "English post" sample, set the date to 2024-03-15, press Enter]`
 
-Here's a real post of the kind that circulates every year. Renewal advice from someone who
-went through it in March 2024.
+This is the kind of advice that circulates every year. Someone who renewed their permit in
+March 2024, passing on what worked.
 
-I paste it in, tell Hearsay when it was written, and it goes to work.
+`[the pipeline runs — sped up in the edit]`
 
-`[while the pipeline runs — this is sped up in the edit]`
-
-It translates the question into formal French administrative terms, because the official
-corpus doesn't use the words students use. It searches five and a half thousand official
-documents. Then it breaks the post into individual claims, and rules on each one.
+It's turning my question into formal French administrative terms, searching five and a half
+thousand official documents, then splitting the post into separate claims.
 
 `[results appear — scroll slowly, stop on the €3,000 verdict]`
 
-And here's what it found.
+"You need three thousand euros in your account." Not covered. The official documents ask for
+proof of sufficient means — they never name a figure. That number came from one préfecture,
+one year, and it's been repeated ever since.
 
-"You need to show three thousand euros in your account." Not covered. The official
-documents require proof of sufficient means — they never name a figure. That number came
-from one préfecture, one year, and it has been repeated ever since.
+`[point at the date on any citation — "updated 2026-08-01"]`
 
-`[stop on an OUTDATED verdict, point at the date]`
+And every verdict carries the date of the document it rests on. This one was last updated in
+August 2026. The advice was written in March 2024.
 
-This one was true when it was written, and the rules changed afterwards. Hearsay knows
-because every official document carries the date it was last updated.
+`[scroll to the amber note at the bottom of the verdicts]`
 
-Every verdict links to the source, with that date.
+Which is what it's telling me here. This post predates official changes, so even the parts
+that look right are worth re-checking. Forum posts don't expire. The rules they describe do.
 
----
+`[scroll to the green card with the tappable options]`
 
-### `[demo — ask a question in Chinese]`
-
-It also works the other way round — you can just ask. And you can ask in your own language.
-
-`[answer appears in Chinese — scroll to the green card with the tappable options]`
-
-Notice what it does here. It doesn't hand me a generic procedure. It asks which permit I
-actually hold, and offers the likely answers so I can tap one.
-
-Because in France the honest answer is "it depends" — and a tool that pretends otherwise
-is how bad advice gets made in the first place.
-
-`[now type the reply in English]`
-
-And here's the part I like most. I'll answer it — but in English this time.
-
-`[answer comes back in English]`
-
-It switches with me. It keeps the thread. And underneath, both turns searched the exact
-same French government documents.
-
-Because the language you ask in, and the language the law is written in, are two different
-problems. Hearsay keeps them separate.
+Then it does something I like. It doesn't guess which permit I hold — it asks. And it offers
+the likely answers, so I can just tap one. Including "I'm not sure", because plenty of people
+genuinely aren't.
 
 ⏸
 
-For this audience, that isn't a feature. It's the point.
+I could tap one of these. But watch what happens if I answer in Chinese instead.
+
+`[type: 我持有的是 titre de séjour étudiant,在里昂  — press Enter]`
+
+`[the pipeline runs — sped up]`
+
+`[the answer comes back in Chinese, continuing the same thread]`
+
+It switches with me. It keeps the thread. And underneath, both turns searched the exact same
+French government documents.
+
+⏸
+
+Because the language you ask in, and the language the law is written in, are two different
+problems.
 
 ⏸ `[switch back to the slides]`
 

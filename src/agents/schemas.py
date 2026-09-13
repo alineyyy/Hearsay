@@ -12,7 +12,23 @@ from typing import Any, List, Literal
 from pydantic import BaseModel, Field, model_validator
 
 
-class _Model(BaseModel):
+class _Lenient(BaseModel):
+    """Base model that tolerates explicit nulls for optional fields.
+
+    Models routinely emit `"deadline": null` rather than omitting the key, which a plain
+    `str` field rejects outright and which used to abort an entire run. Dropping nulls
+    before validation lets each field's default apply, which is what the null meant.
+    """
+
+    @model_validator(mode="before")
+    @classmethod
+    def _drop_nulls(cls, data):
+        if isinstance(data, dict):
+            return {k: v for k, v in data.items() if v is not None}
+        return data
+
+
+class _Model(_Lenient):
     """
     Backstop against one model failure: emitting a nested structure as a JSON
     *string* instead of real JSON.
@@ -190,6 +206,24 @@ class Step(_Model):
     )
 
 
+class FollowUpOptions(_Model):
+    """Just the tappable answers.
+
+    A single-field schema on its own call, because an optional list inside the much larger
+    Guide is the field a model skips first — asking for the whole Guide again does not fix
+    that. Here there is nothing else to return.
+    """
+
+    # No min_length/max_length here: Bedrock's constrained decoding rejects any minItems
+    # other than 0 or 1, and an invalid tool definition fails the whole call. The count is
+    # stated in the description and checked in the caller instead.
+    options: List[str] = Field(
+        description="2-5 short answers the user can tap instead of typing, each under about "
+        "five words. Include an \"I'm not sure\" style option whenever they might not know. "
+        "In the user's language, but keep French permit names in French.",
+    )
+
+
 class Guide(_Model):
     """The final deliverable handed to the user."""
 
@@ -218,7 +252,8 @@ class Guide(_Model):
         "answer — which is rare on a first exchange. In the user's language."
     )
     follow_up_options: List[str] = Field(
-        description="REQUIRED whenever follow_up_question is non-empty: 2-5 short, likely answers to follow_up_question that the user can pick "
+        default_factory=list,
+        description="Fill this whenever follow_up_question is non-empty: 2-5 short, likely answers to follow_up_question that the user can pick "
         "instead of typing — e.g. for a permit question: 'titre de séjour étudiant', "
         "'passeport talent', 'vie privée et familiale', 'I'm not sure'. Keep each under about "
         "five words. Leave empty when the question has no small set of likely answers (a date, "

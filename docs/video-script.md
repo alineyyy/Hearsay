@@ -46,80 +46,78 @@ Narration is ~150 words/minute. Word counts below are sized for the time given.
 
 ---
 
-## 3 · Demo A — checking what you heard — 1:00–2:15
+## 3 · Demo — one conversation, everything in it — 1:00–3:00
 
-🎞 Switch to the browser. Paste the sample post. Post date 2024-03-15. Hit send.
+**Two turns, not two demos.** Three turns means three waits, and three waits will not fit in
+two minutes even sped up. One continuous session shows all of it: multilingual input, the
+per-claim verdicts, the tappable options, the language switch, and the kept context.
+
+**English first, then Chinese.** The judges can read the verdicts in turn one — that is the
+substance. The switch to Chinese in turn two is the thing they only need to *see*, not read.
+
+🎞 Click the **English post** sample, set the date to `2024-03-15`, press Enter.
 
 🎙
-> Here's a real post of the kind that circulates every year — renewal advice from
-> someone who went through it in March 2024.
->
-> I paste it in, tell Hearsay when it was written, and it goes to work.
+> This is the kind of advice that circulates every year. Someone who renewed their permit in
+> March 2024, passing on what worked.
 
-🎞 **Pipeline stages light up. SPEED THIS UP 8× IN EDITING.** Keep 3–4 seconds of it
-at normal speed first so viewers see the stages, then accelerate through the wait.
+🎞 **Pipeline runs. SPEED UP 8× IN EDITING**, keeping the first 3–4 seconds at normal speed
+so the stages are visible.
 
 🎙 *(over the sped-up section)*
-> It translates the question into formal French administrative terms — because the
-> official corpus doesn't use the words students use. It searches five and a half
-> thousand official documents. Then it breaks the post into individual claims and
-> rules on each one.
+> It's turning my question into formal French administrative terms, searching five and a half
+> thousand official documents, then splitting the post into separate claims.
 
-🎞 Results appear. **Scroll slowly.** Stop on the €3,000 verdict. Let it sit on screen.
+🎞 Results appear. Scroll slowly. **Stop on the €3,000 verdict and let it sit.**
 
 🎙
-> And here's what it found.
+> "You need three thousand euros in your account." Not covered. The official documents ask for
+> proof of sufficient means — they never name a figure. That number came from one préfecture,
+> one year, and it's been repeated ever since.
+
+🎞 Point at the date on any citation — every verdict shows one ("updated 2026-08-01").
+Then scroll to the amber **"Worth knowing"** note under the verdicts.
+
+🎙
+> And every verdict carries the date of the document it rests on. This one was last updated
+> in August 2026. The advice was written in March 2024.
 >
-> "You need to show three thousand euros in your account." Not covered. The official
-> documents require proof of sufficient means — they never name a figure. That number
-> came from one préfecture, one year, and it has been repeated ever since.
+> Which is what it's telling me here. This post predates official changes, so even the parts
+> that look right are worth re-checking. Forum posts don't expire. The rules they describe do.
 
-🎞 Stop on an OUTDATED verdict. Point at the date.
+> **Note on what actually appears.** An earlier draft of this script said "stop on an OUTDATED
+> verdict" — but on a real run the verdicts came back as *not covered*, *partly true* and
+> *confirmed*, with no OUTDATED among them. Do not script around a badge that may not appear.
+> The recency argument is carried by two things that are always on screen: the update date on
+> every citation, and the amber note. That the tool does not stamp "outdated" on everything is
+> a point in its favour, not a gap — and the €3,000 verdict is the stronger finding anyway: a
+> number everyone repeats, with no official basis at all.
+
+🎞 Scroll to the green "Hearsay needs to know" card with its option chips.
 
 🎙
-> This one was true when it was written — and the rules changed afterwards. Hearsay
-> knows because every official document carries the date it was last updated.
+> Then it does something I like. It doesn't guess which permit I hold — it asks. And it offers
+> the likely answers, so I can just tap one. Including "I'm not sure", because plenty of people
+> genuinely aren't.
+
+🎞 Pause. Then, instead of tapping, type in Chinese:
+`我持有的是 titre de séjour étudiant,在里昂`
+
+🎙
+> I could tap one of these. But watch what happens if I answer in Chinese instead.
+
+🎞 Pipeline runs (speed up). The answer returns **in Chinese**, continuing the same thread.
+
+🎙
+> It switches with me. It keeps the thread. And underneath, both turns searched the exact same
+> French government documents.
 >
-> Every verdict links to the source, with that date.
+> Because the language you ask in, and the language the law is written in, are two different
+> problems.
 
-*(~150 words total across this section.)*
-
----
-
-## 4 · Demo B — it asks you back, in whatever language you switch to — 2:15–3:05
-
-🎞 New question, **in Chinese**: `我的学生居留快到期了怎么续?`
-Speed up the wait.
-
-🎙
-> It also works the other way round — you can just ask. And you can ask in your own
-> language.
-
-🎞 Answer appears **in Chinese**. Scroll to the green "Hearsay needs to know" card with
-its tappable options.
-
-🎙
-> Notice what it does here. It doesn't hand me a generic procedure — it asks which permit
-> I actually hold, and offers the likely answers so I can tap one. Because in France the
-> honest answer is "it depends", and a tool that pretends otherwise is how bad advice gets
-> made in the first place.
-
-🎞 **Now switch language.** Instead of tapping, type in **English**:
-`I hold a titre de séjour étudiant, in Lyon.` Send. Speed up the wait.
-
-🎙
-> And here's the part I like most. I'll answer it — but in English this time.
-
-🎞 Answer comes back **in English**, continuing the same thread.
-
-🎙
-> It switches with me. It keeps the thread. And underneath, both turns searched the exact
-> same French government documents — because the language you ask in and the language the
-> law is written in are two different problems, and Hearsay keeps them separate.
->
-> For this audience, that isn't a feature. It's the point.
-
-*(~150 words. This is the strongest 30 seconds in the video — do not rush it.)*
+*(~290 words ≈ 2:00 at normal pace. The Chinese answer is the strongest single moment in the
+video: the judges cannot read it — and not being able to read it is exactly the experience
+this product exists to fix.)*
 
 ---
 

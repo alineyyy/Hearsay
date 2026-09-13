@@ -133,6 +133,7 @@
     margin-top: 11px; padding-top: 10px; border-top: 1px dashed var(--rule);
     font-size: 13px; font-family: var(--mono); color: var(--ink-faint);
   }
+  .cite-row + .cite-row { margin-top: 4px; }
   .cite a { color: var(--accent); text-decoration: none; }
   .cite a:hover { text-decoration: underline; }
   .cite .date { color: var(--stale); }
@@ -458,6 +459,25 @@ function foldPipeline(el) {
   el.querySelector('.recap').onclick = () => el.classList.toggle('folded');
 }
 
+// One dashed rule per verdict, not one per citation — and the same document cited twice
+// is one source, not two. Without this the cards stack empty-looking bands.
+function renderCites(evidence) {
+  const seen = new Set();
+  const rows = (evidence || [])
+    .filter(e => (e.doc_id || e.title || e.official_url))
+    .filter(e => { const k = e.doc_id || e.official_url; if (seen.has(k)) return false; seen.add(k); return true; })
+    .map(e => {
+      const label = [e.doc_id, e.title].filter(Boolean).join(' · ');
+      const link = e.official_url
+        ? `<a href="${esc(e.official_url)}" target="_blank" rel="noopener">${esc(label)}</a>`
+        : esc(label);
+      const date = e.last_official_update
+        ? ` · updated <span class="date">${esc(e.last_official_update)}</span>` : '';
+      return `<div class="cite-row">${link}${date}</div>`;
+    });
+  return rows.length ? `<div class="cite">${rows.join('')}</div>` : '';
+}
+
 function renderVerdicts(v) {
   if (!v || !v.verdicts?.length) return '';
   let html = '<h2>What we checked</h2>';
@@ -469,11 +489,7 @@ function renderVerdicts(v) {
       </div>
       <p class="claim">${esc(d.claim)}</p>
       <p class="why">${esc(d.explanation)}</p>
-      ${(d.evidence || []).map(e => `
-        <div class="cite">
-          ${esc(e.doc_id)} · <a href="${esc(e.official_url)}" target="_blank" rel="noopener">${esc(e.title)}</a>
-          · last updated <span class="date">${esc(e.last_official_update)}</span>
-        </div>`).join('')}
+      ${renderCites(d.evidence)}
     </div>`).join('');
   if (v.overall_note) html += `<div class="note"><b>Worth knowing —</b> ${esc(v.overall_note)}</div>`;
   return html;
@@ -518,6 +534,8 @@ function renderAsking(g) {
 
 function renderSources(list) {
   if (!list?.length) return '';
+  const seen = new Set();
+  list = list.filter(s => { if (seen.has(s.doc_id)) return false; seen.add(s.doc_id); return true; });
   return `<details class="fold">
     <summary>Official documents consulted (${list.length})</summary>
     <ul class="plain sources">` +
